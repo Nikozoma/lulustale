@@ -29,4 +29,29 @@ describe("asset manifest overworld readability mappings", () => {
     expect(ASSET_MANIFEST.tiles.home_door.imageKey).toBe("modernCityTiles");
     expect(ASSET_MANIFEST.tiles.charles_jr_door.imageKey).toBe("cityPropTiles");
   });
+
+  it("maps home-specific indoor polish sprites to real Top-Down_Retro_Interior assets", () => {
+    expect(ASSET_MANIFEST.tiles.home_floor).toMatchObject({
+      imageKey: "topDownFloorsWalls",
+      crop: { x: 16, y: 80, width: 16, height: 16 }
+    });
+    expect(ASSET_MANIFEST.tiles.home_wall).toMatchObject({
+      imageKey: "topDownFloorsWalls",
+      crop: { x: 144, y: 48, width: 16, height: 16 }
+    });
+    expect(ASSET_MANIFEST.tiles.entrance_exit).toMatchObject({
+      imageKey: "topDownDoorsWindows",
+      crop: { x: 128, y: 80, width: 32, height: 48 }
+    });
+    expect(ASSET_MANIFEST.objects.doorway.imageKey).toBe("topDownDoorsWindows");
+    expect(ASSET_MANIFEST.objects.home_dining_table).toMatchObject({
+      imageKey: "topDownFurnitureState1",
+      render: { mode: "fit", widthTiles: 2, heightTiles: 1 }
+    });
+    expect(ASSET_MANIFEST.objects.bed).toMatchObject({
+      imageKey: "modernInteriors32",
+      crop: { x: 224, y: 2400, width: 64, height: 64 },
+      render: { mode: "fit", widthTiles: 1.7, heightTiles: 2 }
+    });
+  });
 });

@@ -62,6 +62,11 @@ const furniture = imageAsset(
   "Top-Down_Retro_Interior/TopDownHouse_FurnitureState1.png",
   "/assets/top-down-retro-interior/TopDownHouse_FurnitureState1.png"
 );
+const modernInteriors = imageAsset(
+  "modernInteriors32",
+  "Modern_Interiors_Free_v2.2/Modern tiles_Free/Interiors_free/32x32/Interiors_free_32x32.png",
+  "/assets/modern-interiors/Interiors_free_32x32.png"
+);
 const cityProps = imageAsset(
   "cityPropTiles",
   "City Prop Tileset update 2.png",
@@ -127,6 +132,7 @@ export const ASSET_MANIFEST: AssetManifest = {
     floors,
     doors,
     furniture,
+    modernInteriors,
     cityProps,
     modernCity,
     natureGlobal,
@@ -136,6 +142,14 @@ export const ASSET_MANIFEST: AssetManifest = {
     ...Object.values(luluStrips)
   ],
   tiles: {
+    home_floor: {
+      imageKey: floors.key,
+      crop: { x: 16, y: 80, width: 16, height: 16 }
+    },
+    home_wall: {
+      imageKey: floors.key,
+      crop: { x: 144, y: 48, width: 16, height: 16 }
+    },
     indoor_floor: {
       imageKey: floors.key,
       crop: { x: 144, y: 80, width: 16, height: 16 }
@@ -158,7 +172,7 @@ export const ASSET_MANIFEST: AssetManifest = {
     },
     entrance_exit: {
       imageKey: doors.key,
-      crop: { x: 160, y: 80, width: 32, height: 48 }
+      crop: { x: 128, y: 80, width: 32, height: 48 }
     },
     street: {
       imageKey: cityProps.key,
@@ -243,10 +257,16 @@ export const ASSET_MANIFEST: AssetManifest = {
       note: "Tiled booth seating using a square real sofa-back crop from TopDownHouse_FurnitureState1.png to avoid squeezed couch repeats."
     },
     bed: {
-      imageKey: furniture.key,
-      crop: { x: 0, y: 64, width: 32, height: 48 },
-      render: { mode: "fit", widthTiles: 1.25, heightTiles: 2, anchor: "bottom" },
-      note: "Full vertical bed crop from TopDownHouse_FurnitureState1.png."
+      imageKey: modernInteriors.key,
+      crop: { x: 224, y: 2400, width: 64, height: 64 },
+      render: { mode: "fit", widthTiles: 1.7, heightTiles: 2, anchor: "bottom" },
+      note: "Clear real bed crop from Modern_Interiors_Free_v2.2, used because TopDownHouse_FurnitureState1.png did not contain a bed-like crop that read clearly in Lulu's one-by-two bed footprint."
+    },
+    doorway: {
+      imageKey: doors.key,
+      crop: { x: 96, y: 80, width: 32, height: 48 },
+      render: { mode: "fit", widthTiles: 1, heightTiles: 1.5, anchor: "bottom" },
+      note: "Indoor open doorway frame from TopDownHouse_DoorsAndWindows.png for the home room divider."
     },
     couch: {
       imageKey: furniture.key,
@@ -265,6 +285,12 @@ export const ASSET_MANIFEST: AssetManifest = {
       crop: { x: 128, y: 0, width: 32, height: 32 },
       render: { mode: "fit", widthTiles: 1.25, heightTiles: 1.25, anchor: "center" },
       note: "Compact square table-and-chairs crop from TopDownHouse_FurnitureState1.png."
+    },
+    home_dining_table: {
+      imageKey: furniture.key,
+      crop: { x: 128, y: 0, width: 64, height: 32 },
+      render: { mode: "fit", widthTiles: 2, heightTiles: 1, anchor: "center" },
+      note: "Two-tile table-and-chair crop from TopDownHouse_FurnitureState1.png used only for Lulu's two-cell dining footprint."
     },
     refrigerator: {
       imageKey: furniture.key,
@@ -286,9 +312,9 @@ export const ASSET_MANIFEST: AssetManifest = {
     },
     counter_top: {
       imageKey: furniture.key,
-      crop: { x: 128, y: 208, width: 16, height: 16 },
+      crop: { x: 128, y: 224, width: 32, height: 32 },
       render: { mode: "tile", anchor: "bottom" },
-      note: "Tiled cabinet-front segment from TopDownHouse_FurnitureState1.png, chosen to avoid black countertop gaps on fragmented home counters."
+      note: "Tiled cabinet-front crop from TopDownHouse_FurnitureState1.png, using a full 32px cabinet cell for the fragmented home kitchen counters."
     },
     cashier_counter: {
       imageKey: furniture.key,

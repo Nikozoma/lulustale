@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile, writeFile, readdir, mkdir, copyFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { basename, extname, join, resolve, dirname } from 'node:path';
+import { basename, extname, join, resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
@@ -18,10 +18,13 @@ const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg'
 };
+
+const SKIP_DIRS = new Set(['.git', '.codex', 'node_modules', 'tools', 'dist']);
 
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -39,6 +42,21 @@ async function readJsonBody(req) {
   const raw = Buffer.concat(chunks).toString('utf8');
   if (!raw.trim()) return {};
   return JSON.parse(raw);
+}
+
+function assertInsideProject(fullPath) {
+  const rel = relative(PROJECT_ROOT, fullPath);
+  if (rel.startsWith('..') || rel === '..' || rel.includes(`..${sep}`) || resolve(fullPath) === PROJECT_ROOT) {
+    throw new Error('Path is outside the project root.');
+  }
+}
+
+function safeProjectRelativePath(input) {
+  const raw = String(input || '').replace(/\\/g, '/');
+  if (!raw || raw.startsWith('/') || raw.includes('\0')) throw new Error('Invalid project asset path.');
+  const fullPath = resolve(PROJECT_ROOT, raw);
+  assertInsideProject(fullPath);
+  return relative(PROJECT_ROOT, fullPath).replace(/\\/g, '/');
 }
 
 function safeMapFileName(fileName) {
@@ -75,6 +93,33 @@ function validateSemanticMap(map) {
       });
     });
   }
+
+  if (map.assetLayers !== undefined) validateAssetLayers(map.assetLayers, width, height);
+}
+
+function validateAssetLayers(assetLayers, width, height) {
+  if (!assetLayers || typeof assetLayers !== 'object') throw new Error('assetLayers must be an object when present.');
+  for (const layer of ['ground', 'structures', 'objects']) {
+    const rows = assetLayers[layer];
+    if (rows === undefined) continue;
+    if (!Array.isArray(rows)) throw new Error(`assetLayers.${layer} must be an array.`);
+    if (rows.length !== height) throw new Error(`assetLayers.${layer} has ${rows.length} rows; expected ${height}.`);
+    rows.forEach((row, rowIndex) => {
+      if (!Array.isArray(row)) throw new Error(`assetLayers.${layer} row ${rowIndex} is not an array.`);
+      if (row.length !== width) throw new Error(`assetLayers.${layer} row ${rowIndex} has ${row.length} cells; expected ${width}.`);
+      row.forEach((cell, cellIndex) => {
+        if (cell === null) return;
+        if (!cell || typeof cell !== 'object') throw new Error(`assetLayers.${layer} row ${rowIndex}, cell ${cellIndex} must be null or an object.`);
+        if (typeof cell.assetPath !== 'string') throw new Error(`assetLayers.${layer} row ${rowIndex}, cell ${cellIndex} is missing assetPath.`);
+        safeProjectRelativePath(cell.assetPath);
+        for (const key of ['sx', 'sy', 'sw', 'sh']) {
+          if (!Number.isInteger(Number(cell[key])) || Number(cell[key]) < 0) {
+            throw new Error(`assetLayers.${layer} row ${rowIndex}, cell ${cellIndex} has invalid ${key}.`);
+          }
+        }
+      });
+    });
+  }
 }
 
 async function listMaps() {
@@ -95,7 +140,8 @@ async function listMaps() {
         width: raw.width,
         height: raw.height,
         gameTileSizePx: raw.gameTileSizePx,
-        version: raw.version || null
+        version: raw.version || null,
+        hasAssetLayers: Boolean(raw.assetLayers)
       });
     } catch (error) {
       maps.push({ fileName, error: error.message });
@@ -104,14 +150,86 @@ async function listMaps() {
   return maps;
 }
 
+async function listPngAssets() {
+  const results = [];
+  async function walk(dir) {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      const rel = relative(PROJECT_ROOT, full).replace(/\\/g, '/');
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        await walk(full);
+        continue;
+      }
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.png')) continue;
+      // Avoid Mac metadata files and screenshots/docs by default. The user can move assets into source/public folders if needed.
+      if (entry.name.startsWith('._') || rel.startsWith('docs/')) continue;
+      const dimensions = await readPngDimensions(full).catch(() => null);
+      if (!dimensions) continue;
+      results.push({
+        path: rel,
+        name: entry.name,
+        width: dimensions.width,
+        height: dimensions.height,
+        suggestedTileSize: suggestTileSize(rel, dimensions.width, dimensions.height)
+      });
+    }
+  }
+  await walk(PROJECT_ROOT);
+  results.sort((a, b) => scoreAssetPath(a.path) - scoreAssetPath(b.path) || a.path.localeCompare(b.path));
+  return results;
+}
+
+function scoreAssetPath(path) {
+  if (path.startsWith('public/assets/top-down-retro-interior/')) return 0;
+  if (path.startsWith('Top-Down_Retro_Interior/')) return 1;
+  if (path.startsWith('public/assets/city/')) return 2;
+  if (path.startsWith('City Prop') || path.startsWith('modern pixel')) return 3;
+  if (path.includes('/Tiles/')) return 4;
+  if (path.startsWith('public/assets/')) return 5;
+  return 20;
+}
+
+function suggestTileSize(path, width, height) {
+  if (path.includes('TopDownHouse') || path.includes('top-down-retro-interior')) return 16;
+  if (width % 32 === 0 && height % 32 === 0) return 32;
+  if (width % 16 === 0 && height % 16 === 0) return 16;
+  return 32;
+}
+
+async function readPngDimensions(fullPath) {
+  const buffer = await readFile(fullPath);
+  if (buffer.length < 24 || buffer.toString('ascii', 1, 4) !== 'PNG') throw new Error('not png');
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') {
-    sendJson(res, 200, { ok: true, projectRoot: PROJECT_ROOT, editorRoot: EDITOR_ROOT });
+    sendJson(res, 200, { ok: true, version: '1.1', projectRoot: PROJECT_ROOT, editorRoot: EDITOR_ROOT });
     return true;
   }
 
   if (req.method === 'GET' && url.pathname === '/api/maps') {
     sendJson(res, 200, { projectRoot: PROJECT_ROOT, maps: await listMaps() });
+    return true;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/assets') {
+    sendJson(res, 200, { projectRoot: PROJECT_ROOT, assets: await listPngAssets() });
+    return true;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/project-asset') {
+    const rel = safeProjectRelativePath(url.searchParams.get('path'));
+    const fullPath = join(PROJECT_ROOT, rel);
+    const ext = extname(fullPath).toLowerCase();
+    if (!['.png', '.jpg', '.jpeg'].includes(ext)) throw new Error('Only image assets can be served.');
+    const info = await stat(fullPath);
+    if (!info.isFile()) throw new Error('Asset is not a file.');
+    const mime = MIME_TYPES[ext] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-store' });
+    res.end(await readFile(fullPath));
     return true;
   }
 
@@ -143,6 +261,10 @@ async function handleApi(req, res, url) {
     if (!map.mapId && map.mapName) map.mapId = map.mapName;
     if (!map.mapName && map.mapId) map.mapName = map.mapId;
     if (!map.displayName) map.displayName = map.mapId || map.mapName || fileName;
+    if (map.assetLayers) {
+      map.assetTileFormat = map.assetTileFormat || 'lulus_asset_tile_layers_v1';
+      map.assetLayerOrder = ['ground', 'structures', 'objects'];
+    }
 
     await writeFile(fullPath, `${JSON.stringify(map, null, 2)}\n`, 'utf8');
     sendJson(res, 200, { ok: true, fileName, backupFileName, savedAt: new Date().toISOString() });
@@ -190,7 +312,7 @@ const server = createServer(async (req, res) => {
 server.listen(DEFAULT_PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${DEFAULT_PORT}`;
   console.log('=========================================');
-  console.log('Lulu\'s Tale Project Map Editor v1.0');
+  console.log('Lulu\'s Tale Project Map Editor v1.1');
   console.log(`Project root: ${PROJECT_ROOT}`);
   console.log(`Editor URL:   ${url}`);
   console.log('Close this window to stop the editor.');

@@ -95,7 +95,13 @@ export class CanvasRenderer {
         if (!cell) {
           continue;
         }
-        this.drawTileSprite(this.manifest.tiles[cell], x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
+        this.drawTileSprite(
+          this.getTileSprite(map, cell),
+          x * map.tileSize,
+          y * map.tileSize,
+          map.tileSize,
+          map.tileSize
+        );
       }
     }
   }
@@ -114,7 +120,7 @@ export class CanvasRenderer {
         if (!spriteKey) {
           continue;
         }
-        const sprite = this.manifest.tiles[spriteKey] ?? this.manifest.tiles.interior_wall;
+        const sprite = this.getTileSprite(map, spriteKey) ?? this.manifest.tiles.interior_wall;
         this.drawTileSprite(sprite, x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
       }
     }
@@ -132,6 +138,10 @@ export class CanvasRenderer {
     for (let y = 0; y < map.heightTiles; y += 1) {
       for (let x = 0; x < map.widthTiles; x += 1) {
         const marker = map.layers.markers[y][x];
+        const structure = map.layers.structures[y][x];
+        if (map.name === "home_interior_day1" && structure === "entrance_exit") {
+          this.drawDoorFixture(this.manifest.tiles.entrance_exit, x, y, map.tileSize);
+        }
         if (marker === "player_door" || marker === "transition_to_home") {
           this.drawDoorFixture(this.manifest.tiles.home_door, x, y, map.tileSize);
         }
@@ -156,7 +166,7 @@ export class CanvasRenderer {
         continue;
       }
 
-      const sprite = this.manifest.objects[region.id];
+      const sprite = this.getObjectSprite(map, region.id);
       if (!sprite) {
         continue;
       }
@@ -492,6 +502,28 @@ export class CanvasRenderer {
     }
 
     this.drawCrop(image, sprite.crop, x, y, width, height);
+  }
+
+  private getTileSprite(map: SemanticMap, cell: string): TileSprite | undefined {
+    if (map.name === "home_interior_day1") {
+      if (cell === "indoor_floor") {
+        return this.manifest.tiles.home_floor;
+      }
+
+      if (cell === "exterior_wall" || cell === "interior_wall") {
+        return this.manifest.tiles.home_wall;
+      }
+    }
+
+    return this.manifest.tiles[cell];
+  }
+
+  private getObjectSprite(map: SemanticMap, id: string): ObjectSprite | undefined {
+    if (map.name === "home_interior_day1" && id === "dining_table") {
+      return this.manifest.objects.home_dining_table;
+    }
+
+    return this.manifest.objects[id];
   }
 
   private drawCrop(
