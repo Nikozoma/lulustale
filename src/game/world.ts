@@ -51,8 +51,18 @@ export type ObjectRegion = {
 
 const REQUIRED_LAYERS: LayerName[] = ["ground", "structures", "objects", "markers"];
 
-const WALKABLE_GROUND_IDS = new Set(["indoor_floor"]);
-const SOLID_STRUCTURE_IDS = new Set(["exterior_wall", "interior_wall", "collision_block", "window"]);
+const WALKABLE_GROUND_IDS = new Set(["indoor_floor", "street", "sidewalk", "parking_lot", "crosswalk", "grass"]);
+const SOLID_STRUCTURE_IDS = new Set([
+  "exterior_wall",
+  "interior_wall",
+  "collision_block",
+  "window",
+  "player_apartment_building",
+  "charles_jr_building",
+  "apartment_building",
+  "building_shell",
+  "fence"
+]);
 const SOLID_OBJECT_IDS = new Set([
   "bed",
   "booth_seat",
@@ -64,7 +74,9 @@ const SOLID_OBJECT_IDS = new Set([
   "counter_top",
   "sink",
   "stove",
-  "furniture_appliance"
+  "furniture_appliance",
+  "tree",
+  "bush"
 ]);
 
 export function normalizeSemanticMap(raw: RawSemanticMap): SemanticMap {

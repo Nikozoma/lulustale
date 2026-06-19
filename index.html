@@ -18,10 +18,15 @@
       <section id="hud" aria-live="polite">
         <div id="objective"></div>
         <div id="quest-message"></div>
-        <div id="interaction-prompt"></div>
         <div class="hud-actions">
-          <button id="interact-button" type="button" hidden>Interact</button>
           <button id="restart-button" type="button" hidden>Restart</button>
+        </div>
+      </section>
+      <section id="tutorial-popup" class="tutorial-backdrop" aria-modal="true" role="dialog" hidden>
+        <div class="tutorial-panel">
+          <h2 id="tutorial-title"></h2>
+          <div id="tutorial-body"></div>
+          <button id="tutorial-button" type="button">Got it</button>
         </div>
       </section>
       <button id="debug-toggle" type="button" aria-pressed="false">Debug</button>

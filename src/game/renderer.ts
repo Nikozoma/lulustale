@@ -1,24 +1,41 @@
 import type { AssetManifest, LoadedImages, ObjectSprite, SpriteCrop, TileSprite } from "./assets";
-import { HOME_RENDER_ZOOM, PLAYER, VIRTUAL_VIEWPORT } from "./constants";
+import { PLAYER, VIRTUAL_VIEWPORT } from "./constants";
 import type { TouchState } from "./input";
 import type { PlayerState } from "./player";
+import type { BirdAttention } from "./quest";
 import { getPlayerSpriteDrawBox } from "./playerRender";
 import { getObjectDrawBox, getStructureSpriteKey } from "./renderPlan";
 import {
   collectObjectRegions,
+  collectStructureRegions,
   type CollisionGrid,
   type ObjectRegion,
   type SemanticMap,
   type WorldPoint
 } from "./world";
 
+const GROUPED_STRUCTURE_IDS = new Set([
+  "player_apartment_building",
+  "charles_jr_building",
+  "apartment_building",
+  "building_shell"
+]);
+
 type RenderState = {
   map: SemanticMap;
   collision: CollisionGrid;
   camera: WorldPoint;
+  renderZoom: number;
   player: PlayerState;
   inputState: TouchState;
   debugEnabled: boolean;
+  activeInteractableTarget?: WorldPoint | null;
+  bird?: {
+    visible: boolean;
+    position: WorldPoint;
+    attention: BirdAttention;
+    animationTime: number;
+  };
   questDebugText?: string;
 };
 
@@ -37,13 +54,16 @@ export class CanvasRenderer {
     ctx.fillRect(0, 0, VIRTUAL_VIEWPORT.width, VIRTUAL_VIEWPORT.height);
 
     ctx.save();
-    ctx.scale(HOME_RENDER_ZOOM, HOME_RENDER_ZOOM);
+    ctx.scale(state.renderZoom, state.renderZoom);
     ctx.translate(-state.camera.x, -state.camera.y);
     this.drawGround(state.map);
     this.drawStructures(state.map);
+    this.drawMarkerFixtures(state.map);
     this.drawObjects(state.map);
     this.drawDog(state.map);
     this.drawCashier(state.map);
+    this.drawBird(state.bird);
+    this.drawInteractableMarker(state.activeInteractableTarget);
     this.drawPlayer(state.player);
 
     if (state.debugEnabled) {
@@ -52,7 +72,9 @@ export class CanvasRenderer {
 
     ctx.restore();
     this.drawTouchControls(state.inputState);
-    this.drawDevInfo(state);
+    if (state.debugEnabled) {
+      this.drawDevInfo(state);
+    }
   }
 
   private drawGround(map: SemanticMap): void {
@@ -74,6 +96,9 @@ export class CanvasRenderer {
         if (!cell) {
           continue;
         }
+        if (GROUPED_STRUCTURE_IDS.has(cell)) {
+          continue;
+        }
         const spriteKey = getStructureSpriteKey(cell);
         if (!spriteKey) {
           continue;
@@ -82,6 +107,36 @@ export class CanvasRenderer {
         this.drawTileSprite(sprite, x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
       }
     }
+
+    for (const region of collectStructureRegions(map)) {
+      const sprite = this.manifest.structures[region.id];
+      if (!sprite) {
+        continue;
+      }
+      this.drawRegion(sprite, region, map.tileSize);
+    }
+  }
+
+  private drawMarkerFixtures(map: SemanticMap): void {
+    for (let y = 0; y < map.heightTiles; y += 1) {
+      for (let x = 0; x < map.widthTiles; x += 1) {
+        const marker = map.layers.markers[y][x];
+        if (marker === "player_door" || marker === "transition_to_home") {
+          this.drawDoorFixture(this.manifest.tiles.home_door, x, y, map.tileSize);
+        }
+        if (marker === "charles_jr_door" || marker === "transition_to_charles_jr") {
+          this.drawDoorFixture(this.manifest.tiles.charles_jr_door, x, y, map.tileSize);
+        }
+      }
+    }
+  }
+
+  private drawDoorFixture(sprite: TileSprite | undefined, tileX: number, tileY: number, tileSize: number): void {
+    const width = tileSize;
+    const height = tileSize * 1.45;
+    const x = tileX * tileSize;
+    const y = tileY * tileSize + tileSize - height;
+    this.drawTileSprite(sprite, x, y, width, height);
   }
 
   private drawObjects(map: SemanticMap): void {
@@ -181,6 +236,73 @@ export class CanvasRenderer {
       drawBox.width,
       drawBox.height
     );
+  }
+
+  private drawBird(bird: RenderState["bird"]): void {
+    if (!bird?.visible) {
+      return;
+    }
+
+    const image = this.images.get(this.manifest.bird.image.key);
+    if (!image) {
+      return;
+    }
+
+    const frameCount = Math.floor(image.width / this.manifest.bird.frameWidth);
+    const frameIndex = Math.floor(bird.animationTime / 0.16) % frameCount;
+    const sourceX = frameIndex * this.manifest.bird.frameWidth;
+    const destWidth = 32;
+    const destHeight = 32;
+    const x = bird.position.x - destWidth / 2;
+    const y = bird.position.y - destHeight + 10;
+
+    this.ctx.drawImage(
+      image,
+      sourceX,
+      0,
+      this.manifest.bird.frameWidth,
+      this.manifest.bird.frameHeight,
+      x,
+      y,
+      destWidth,
+      destHeight
+    );
+
+    this.ctx.save();
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.font = "bold 12px ui-sans-serif, system-ui, sans-serif";
+    this.ctx.fillStyle = bird.attention === "watching" ? "#ff6b5a" : "#7ddf64";
+    this.ctx.fillText(bird.attention === "watching" ? "..." : "Z", bird.position.x + 17, y + 6);
+    this.ctx.restore();
+  }
+
+  private drawInteractableMarker(target: WorldPoint | null | undefined): void {
+    if (!target) {
+      return;
+    }
+
+    const { ctx } = this;
+    const x = target.x;
+    const y = target.y;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgb(0 0 0 / 0.55)";
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = "#ffd84d";
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#5a3000";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#3a2100";
+    ctx.font = "bold 18px ui-sans-serif, system-ui, sans-serif";
+    ctx.fillText("!", x, y + 1);
+    ctx.restore();
   }
 
   private drawDebug(map: SemanticMap, collision: CollisionGrid, player: PlayerState): void {

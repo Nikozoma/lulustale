@@ -2,8 +2,31 @@ import type { MapId } from "./mapRegistry";
 import type { MarkerPosition, WorldPoint } from "./world";
 
 export type InputMode = "desktop" | "mobile";
-export type QuestStage = "movement" | "get_food" | "feed_dog" | "go_to_door" | "order_fries" | "complete";
-export type QuestInteractionKind = "fridge" | "dog" | "exit" | "order";
+export type QuestStage =
+  | "movement"
+  | "get_food"
+  | "feed_dog"
+  | "go_to_door"
+  | "go_to_charles_jr"
+  | "order_fries"
+  | "leave_charles_jr"
+  | "bird_snatch"
+  | "find_bird"
+  | "steal_fries"
+  | "go_home"
+  | "go_to_bed"
+  | "complete";
+export type QuestInteractionKind =
+  | "fridge"
+  | "dog"
+  | "exit"
+  | "charles_jr"
+  | "order"
+  | "charles_exit"
+  | "bird"
+  | "home"
+  | "bed";
+export type BirdAttention = "watching" | "distracted";
 
 export type QuestState = {
   location: MapId;
@@ -11,6 +34,8 @@ export type QuestState = {
   hasDogFood: boolean;
   dogFed: boolean;
   hasFries: boolean;
+  friesStolen: boolean;
+  friesRecovered: boolean;
   message: string | null;
 };
 
@@ -18,12 +43,22 @@ export type QuestMarkerPositions = {
   fridge: MarkerPosition[];
   dog: MarkerPosition[];
   exit: MarkerPosition[];
+  charlesJr: MarkerPosition[];
   order: MarkerPosition[];
+  bird: MarkerPosition[];
+  home: MarkerPosition[];
+  bed: MarkerPosition[];
 };
 
 export type QuestInteraction = {
   kind: QuestInteractionKind;
   prompt: string;
+};
+
+export type ActiveInteractableTarget = {
+  kind: QuestInteractionKind;
+  position: MarkerPosition;
+  markerPosition: WorldPoint;
 };
 
 export function createQuestState(): QuestState {
@@ -33,6 +68,8 @@ export function createQuestState(): QuestState {
     hasDogFood: false,
     dogFed: false,
     hasFries: false,
+    friesStolen: false,
+    friesRecovered: false,
     message: null
   };
 }
@@ -52,17 +89,32 @@ export function markQuestMovementStarted(state: QuestState): QuestState {
 }
 
 export function getQuestObjective(state: QuestState, inputMode: InputMode): string {
+  void inputMode;
   switch (state.stage) {
     case "movement":
-      return inputMode === "mobile" ? "Drag the left side of the screen to move." : "Move with WASD or arrow keys.";
+      return "Drag the left side of the screen to move.";
     case "get_food":
       return "Get food from the fridge.";
     case "feed_dog":
       return "Feed the dog.";
     case "go_to_door":
       return "Go to the door.";
+    case "go_to_charles_jr":
+      return "Go to Charles Jr.";
     case "order_fries":
       return "Order fries at the counter.";
+    case "leave_charles_jr":
+      return "Go outside.";
+    case "bird_snatch":
+      return "A bird stole the fries!";
+    case "find_bird":
+      return "Find the bird.";
+    case "steal_fries":
+      return "Steal the fries back.";
+    case "go_home":
+      return "Go home.";
+    case "go_to_bed":
+      return "It's getting late, time for bed.";
     case "complete":
       return "END OF DEMO";
   }
@@ -75,22 +127,101 @@ export function getAvailableQuestInteraction(
   radius: number
 ): QuestInteraction | null {
   if (state.stage === "get_food" && isNearAny(playerPosition, markers.fridge, radius)) {
-    return { kind: "fridge", prompt: "Press E / Tap to get dog food" };
+    return { kind: "fridge", prompt: "" };
   }
 
   if (state.stage === "feed_dog" && state.hasDogFood && isNearAny(playerPosition, markers.dog, radius)) {
-    return { kind: "dog", prompt: "Press E / Tap to feed dog" };
+    return { kind: "dog", prompt: "" };
   }
 
   if (state.stage === "go_to_door" && state.dogFed && isNearAny(playerPosition, markers.exit, radius)) {
-    return { kind: "exit", prompt: "Press E / Tap to leave home" };
+    return { kind: "exit", prompt: "" };
+  }
+
+  if (state.stage === "go_to_charles_jr" && isNearAny(playerPosition, markers.charlesJr, radius)) {
+    return { kind: "charles_jr", prompt: "" };
   }
 
   if (state.stage === "order_fries" && isNearAny(playerPosition, markers.order, radius)) {
-    return { kind: "order", prompt: "Press E / Tap to order fries" };
+    return { kind: "order", prompt: "" };
+  }
+
+  if (state.stage === "leave_charles_jr" && state.hasFries && isNearAny(playerPosition, markers.exit, radius)) {
+    return { kind: "charles_exit", prompt: "" };
+  }
+
+  if (state.stage === "steal_fries" && state.friesStolen && isNearAny(playerPosition, markers.bird, radius)) {
+    return { kind: "bird", prompt: "" };
+  }
+
+  if (state.stage === "go_home" && state.friesRecovered && isNearAny(playerPosition, markers.home, radius)) {
+    return { kind: "home", prompt: "" };
+  }
+
+  if (state.stage === "go_to_bed" && state.friesRecovered && isNearAny(playerPosition, markers.bed, radius)) {
+    return { kind: "bed", prompt: "" };
   }
 
   return null;
+}
+
+export function getActiveInteractableTarget(
+  state: QuestState,
+  markers: QuestMarkerPositions
+): ActiveInteractableTarget | null {
+  if (state.stage === "get_food") {
+    return firstTarget("fridge", markers.fridge);
+  }
+
+  if (state.stage === "feed_dog" && state.hasDogFood) {
+    return firstTarget("dog", markers.dog);
+  }
+
+  if (state.stage === "go_to_door" && state.dogFed) {
+    return firstTarget("exit", markers.exit);
+  }
+
+  if (state.stage === "go_to_charles_jr") {
+    return firstTarget("charles_jr", markers.charlesJr);
+  }
+
+  if (state.stage === "order_fries") {
+    return firstTarget("order", markers.order);
+  }
+
+  if (state.stage === "leave_charles_jr" && state.hasFries) {
+    return firstTarget("charles_exit", markers.exit);
+  }
+
+  if (state.stage === "steal_fries" && state.friesStolen) {
+    return firstTarget("bird", markers.bird);
+  }
+
+  if (state.stage === "go_home" && state.friesRecovered) {
+    return firstTarget("home", markers.home);
+  }
+
+  if (state.stage === "go_to_bed" && state.friesRecovered) {
+    return firstTarget("bed", markers.bed);
+  }
+
+  return null;
+}
+
+export function getTappedQuestInteraction(
+  state: QuestState,
+  playerPosition: WorldPoint,
+  tapPosition: WorldPoint,
+  markers: QuestMarkerPositions,
+  interactionRadius: number,
+  tapRadius: number
+): QuestInteraction | null {
+  const activeTarget = getActiveInteractableTarget(state, markers);
+  if (!activeTarget || distance(tapPosition, activeTarget.markerPosition) > tapRadius) {
+    return null;
+  }
+
+  return getAvailableQuestInteraction(state, playerPosition, markers, interactionRadius);
 }
 
 export function applyQuestInteraction(state: QuestState, interaction: QuestInteraction): QuestState {
@@ -116,6 +247,15 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_to_door" && interaction.kind === "exit" && state.dogFed) {
     return {
       ...state,
+      location: "main_neighborhood_hub_day1",
+      stage: "go_to_charles_jr",
+      message: null
+    };
+  }
+
+  if (state.stage === "go_to_charles_jr" && interaction.kind === "charles_jr") {
+    return {
+      ...state,
       location: "charles_jr_interior_day1",
       stage: "order_fries",
       message: null
@@ -125,19 +265,145 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "order_fries" && interaction.kind === "order") {
     return {
       ...state,
-      stage: "complete",
+      stage: "leave_charles_jr",
       hasFries: true,
       message: "You got the fries."
+    };
+  }
+
+  if (state.stage === "leave_charles_jr" && interaction.kind === "charles_exit" && state.hasFries) {
+    return {
+      ...state,
+      location: "main_neighborhood_hub_day1",
+      stage: "bird_snatch",
+      hasFries: false,
+      friesStolen: true,
+      message: "A bird swoops down and steals Lulu's fries!"
+    };
+  }
+
+  if (state.stage === "go_home" && interaction.kind === "home" && state.friesRecovered) {
+    return {
+      ...state,
+      location: "home_interior_day1",
+      stage: "go_to_bed",
+      message: "It's getting late, time for bed."
+    };
+  }
+
+  if (state.stage === "go_to_bed" && interaction.kind === "bed" && state.friesRecovered) {
+    return {
+      ...state,
+      stage: "complete",
+      message: null
     };
   }
 
   return state;
 }
 
+export function triggerBirdSnatch(state: QuestState): QuestState {
+  if (state.stage !== "leave_charles_jr" || !state.hasFries) {
+    return state;
+  }
+
+  return {
+    ...state,
+    location: "main_neighborhood_hub_day1",
+    stage: "bird_snatch",
+    hasFries: false,
+    friesStolen: true,
+    message: "A bird swoops down and steals Lulu's fries!"
+  };
+}
+
+export function advanceBirdSnatchEvent(state: QuestState): QuestState {
+  if (state.stage !== "bird_snatch" || !state.friesStolen) {
+    return state;
+  }
+
+  return {
+    ...state,
+    stage: "find_bird",
+    message: null
+  };
+}
+
+export function discoverBird(state: QuestState): QuestState {
+  if (state.stage !== "find_bird" || !state.friesStolen) {
+    return state;
+  }
+
+  return {
+    ...state,
+    stage: "steal_fries",
+    message: null
+  };
+}
+
+export function applyBirdStealAttempt(
+  state: QuestState,
+  playerPosition: WorldPoint,
+  birdPosition: WorldPoint,
+  attention: BirdAttention,
+  radius: number
+): QuestState {
+  if (state.stage !== "steal_fries" || !state.friesStolen || distance(playerPosition, birdPosition) > radius) {
+    return state;
+  }
+
+  if (attention === "watching") {
+    return {
+      ...state,
+      message: "Not while it's watching!"
+    };
+  }
+
+  return {
+    ...state,
+    stage: "go_home",
+    hasFries: true,
+    friesRecovered: true,
+    message: "You got the fries back!"
+  };
+}
+
+function firstTarget(kind: QuestInteractionKind, positions: MarkerPosition[]): ActiveInteractableTarget | null {
+  const position = positions[0];
+  return position ? { kind, position, markerPosition: getMarkerPosition(kind, position) } : null;
+}
+
+function getMarkerPosition(kind: QuestInteractionKind, position: MarkerPosition): WorldPoint {
+  switch (kind) {
+    case "fridge":
+      return { x: position.x + 32, y: position.y + 8 };
+    case "dog":
+      return { x: position.x, y: position.y - 20 };
+    case "exit":
+      return { x: position.x, y: position.y };
+    case "charles_jr":
+      return { x: position.x, y: position.y - 8 };
+    case "order":
+      return { x: position.x, y: position.y + 18 };
+    case "charles_exit":
+      return { x: position.x, y: position.y };
+    case "bird":
+      return { x: position.x, y: position.y - 22 };
+    case "home":
+      return { x: position.x, y: position.y - 8 };
+    case "bed":
+      return { x: position.x, y: position.y - 22 };
+  }
+}
+
 function isNearAny(playerPosition: WorldPoint, positions: MarkerPosition[], radius: number): boolean {
   return positions.some((position) => {
-    const dx = playerPosition.x - position.x;
-    const dy = playerPosition.y - position.y;
-    return Math.hypot(dx, dy) <= radius;
+    return distance(playerPosition, position) <= radius;
   });
+}
+
+function distance(a: WorldPoint, b: WorldPoint): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.hypot(dx, dy);
 }

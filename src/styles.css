@@ -112,16 +112,14 @@ body {
   font: 700 15px/1.25 ui-sans-serif, system-ui, sans-serif;
 }
 
-#quest-message,
-#interaction-prompt {
+#quest-message {
   border-radius: 7px;
   background: rgb(18 16 14 / 0.68);
   padding: 6px 10px;
   font: 600 13px/1.25 ui-sans-serif, system-ui, sans-serif;
 }
 
-#quest-message:empty,
-#interaction-prompt:empty {
+#quest-message:empty {
   display: none;
 }
 
@@ -131,7 +129,6 @@ body {
   pointer-events: auto;
 }
 
-#interact-button,
 #restart-button {
   border: 1px solid #d7b06a;
   border-radius: 8px;
@@ -139,6 +136,55 @@ body {
   color: #1c1309;
   padding: 10px 14px;
   font: 800 13px/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+.tutorial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  background: rgb(0 0 0 / 0.42);
+}
+
+.tutorial-backdrop[hidden] {
+  display: none;
+}
+
+.tutorial-panel {
+  width: min(430px, calc(100vw - 36px));
+  border: 1px solid rgb(255 216 77 / 0.7);
+  border-radius: 8px;
+  background: rgb(22 18 15 / 0.94);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.42);
+  color: #f4efe8;
+  padding: 20px;
+  text-align: center;
+}
+
+.tutorial-panel h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.tutorial-panel p {
+  margin: 0 auto 8px;
+  color: #e5d8c7;
+  font: 700 15px/1.35 ui-sans-serif, system-ui, sans-serif;
+}
+
+#tutorial-button {
+  min-width: 132px;
+  min-height: 46px;
+  margin-top: 12px;
+  border: 1px solid #f2c765;
+  border-radius: 8px;
+  background: #d7a64d;
+  color: #1c1309;
+  font: 900 15px/1 ui-sans-serif, system-ui, sans-serif;
 }
 
 #debug-toggle {

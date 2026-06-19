@@ -1,27 +1,43 @@
 import "./styles.css";
 import { ASSET_MANIFEST, loadImages } from "./game/assets";
 import { clampCamera, getVisibleWorldViewport } from "./game/camera";
-import { HOME_RENDER_ZOOM, INTERACTION_RADIUS_PX, VIRTUAL_VIEWPORT } from "./game/constants";
+import { HOME_RENDER_ZOOM, INTERACTION_RADIUS_PX, OVERWORLD_RENDER_ZOOM, VIRTUAL_VIEWPORT } from "./game/constants";
 import { createInputController } from "./game/input";
 import { getMapSpec, MAP_REGISTRY, type MapId } from "./game/mapRegistry";
 import { createPlayer, updatePlayer } from "./game/player";
 import {
+  advanceBirdSnatchEvent,
+  applyBirdStealAttempt,
   applyQuestInteraction,
+  type BirdAttention,
   createQuestState,
+  discoverBird,
+  getActiveInteractableTarget,
   getAvailableQuestInteraction,
   getQuestObjective,
+  getTappedQuestInteraction,
   markQuestMovementStarted,
   restartQuest,
+  type ActiveInteractableTarget,
   type QuestInteraction,
   type QuestMarkerPositions,
   type QuestState
 } from "./game/quest";
 import { CanvasRenderer } from "./game/renderer";
 import {
+  createTutorialState,
+  dismissActiveTutorial,
+  isTutorialBlockingGameplay,
+  maybeOpenInteractionTutorial,
+  TUTORIAL_CONTENT,
+  type TutorialState
+} from "./game/tutorial";
+import {
   buildCollisionGrid,
   findMarkerPositions,
   normalizeSemanticMap,
   type CollisionGrid,
+  type MarkerPosition,
   type RawSemanticMap,
   type SemanticMap
 } from "./game/world";
@@ -35,9 +51,11 @@ const gateButton = requireElement<HTMLButtonElement>("#gate-button");
 const debugToggle = requireElement<HTMLButtonElement>("#debug-toggle");
 const objective = requireElement<HTMLDivElement>("#objective");
 const questMessage = requireElement<HTMLDivElement>("#quest-message");
-const interactionPrompt = requireElement<HTMLDivElement>("#interaction-prompt");
-const interactButton = requireElement<HTMLButtonElement>("#interact-button");
 const restartButton = requireElement<HTMLButtonElement>("#restart-button");
+const tutorialPopup = requireElement<HTMLElement>("#tutorial-popup");
+const tutorialTitle = requireElement<HTMLHeadingElement>("#tutorial-title");
+const tutorialBody = requireElement<HTMLDivElement>("#tutorial-body");
+const tutorialButton = requireElement<HTMLButtonElement>("#tutorial-button");
 
 const ctx = canvas.getContext("2d");
 if (!ctx) {
@@ -46,6 +64,9 @@ if (!ctx) {
 const canvasContext = ctx;
 
 canvasContext.imageSmoothingEnabled = false;
+
+const BIRD_SNATCH_SECONDS = 1.4;
+const BIRD_DISCOVERY_RADIUS_PX = 120;
 
 function setStatus(message: string): void {
   status.textContent = message;
@@ -107,7 +128,16 @@ type MapContext = {
   map: SemanticMap;
   collision: CollisionGrid;
   playerSpawn: { x: number; y: number };
+  birdSpawns: MarkerPosition[];
   questMarkers: QuestMarkerPositions;
+};
+
+type BirdRuntimeState = {
+  visible: boolean;
+  position: { x: number; y: number };
+  attention: BirdAttention;
+  elapsed: number;
+  animationTime: number;
 };
 
 function createMapContext(id: MapId, rawMap: RawSemanticMap): MapContext {
@@ -124,11 +154,18 @@ function createMapContext(id: MapId, rawMap: RawSemanticMap): MapContext {
     map,
     collision,
     playerSpawn,
+    birdSpawns: findMarkerPositions(map, "npc_spawn"),
     questMarkers: {
       fridge: findMarkerPositions(map, "fridge_interaction"),
-      dog: findMarkerPositions(map, "dog_interaction").concat(findMarkerPositions(map, "dog_spawn")),
+      dog: findMarkerPositions(map, "dog_spawn").concat(findMarkerPositions(map, "dog_interaction")),
       exit: findMarkerPositions(map, "entrance_exit"),
-      order: findMarkerPositions(map, "order_interaction")
+      charlesJr: findMarkerPositions(map, "transition_to_charles_jr").concat(
+        findMarkerPositions(map, "charles_jr_door")
+      ),
+      order: findMarkerPositions(map, "order_interaction"),
+      bird: [],
+      home: findMarkerPositions(map, "transition_to_home").concat(findMarkerPositions(map, "player_door")),
+      bed: findMarkerPositions(map, "bed_interaction")
     }
   };
 }
@@ -153,13 +190,18 @@ async function start(): Promise<void> {
   const inputMode = isLikelyTouchDevice() ? "mobile" : "desktop";
   let player = createPlayer({ x: activeMapContext.playerSpawn.x, y: activeMapContext.playerSpawn.y });
   let quest: QuestState = createQuestState();
+  let tutorial: TutorialState = createTutorialState();
   let availableInteraction: QuestInteraction | null = null;
+  let bird: BirdRuntimeState = createBirdRuntimeState();
   const renderer = new CanvasRenderer(canvasContext, images, ASSET_MANIFEST);
 
   let debugEnabled = false;
   let gameplayStarted = !isLikelyTouchDevice() && !isPortrait();
   let gameplayPausedForPortrait = false;
   let lastTime = performance.now();
+  let lastCamera = { x: 0, y: 0 };
+  let lastRenderZoom = HOME_RENDER_ZOOM;
+  let pointerDownPoint: { x: number; y: number; id: number } | null = null;
 
   window.addEventListener("keydown", (event) => {
     if (event.code === "F3" && !event.repeat) {
@@ -177,12 +219,53 @@ async function start(): Promise<void> {
     setDebugEnabled(!debugEnabled);
   });
 
-  interactButton.addEventListener("click", () => {
-    applyAvailableInteraction();
-  });
-
   restartButton.addEventListener("click", () => {
     restartFoundation();
+  });
+
+  tutorialButton.addEventListener("click", () => {
+    const dismissed = tutorial.active;
+    tutorial = dismissActiveTutorial(tutorial);
+    if (dismissed === "movement") {
+      quest = markQuestMovementStarted(quest);
+    }
+    refreshAvailableInteraction();
+    updateHud();
+    updateTutorialPopup();
+  });
+
+  canvas.addEventListener("pointerdown", (event) => {
+    pointerDownPoint = { ...pointerToVirtual(event), id: event.pointerId };
+  });
+
+  canvas.addEventListener("pointerup", (event) => {
+    if (!pointerDownPoint || pointerDownPoint.id !== event.pointerId) {
+      pointerDownPoint = null;
+      return;
+    }
+
+    const pointerUpPoint = pointerToVirtual(event);
+    const dx = pointerUpPoint.x - pointerDownPoint.x;
+    const dy = pointerUpPoint.y - pointerDownPoint.y;
+    pointerDownPoint = null;
+
+    if (Math.hypot(dx, dy) > 12 || !canUseGameplayInput()) {
+      return;
+    }
+
+    const tapWorldPosition = virtualToWorld(pointerUpPoint);
+    const tappedInteraction = getTappedQuestInteraction(
+      quest,
+      player.position,
+      tapWorldPosition,
+      getCurrentQuestMarkers(),
+      INTERACTION_RADIUS_PX,
+      42
+    );
+    if (tappedInteraction) {
+      availableInteraction = tappedInteraction;
+      applyAvailableInteraction();
+    }
   });
 
   gateButton.addEventListener("click", async () => {
@@ -196,12 +279,14 @@ async function start(): Promise<void> {
     gameplayPausedForPortrait = false;
     lastTime = performance.now();
     updateLaunchGate();
+    updateTutorialPopup();
   });
 
   function updateLaunchGate(): void {
     if (isPortrait()) {
       gameplayPausedForPortrait = true;
       gate.hidden = false;
+      tutorialPopup.hidden = true;
       gateTitle.textContent = "Please turn phone sideways";
       gateCopy.textContent = "Landscape mode is required for this indoor-home demo.";
       gateButton.hidden = true;
@@ -221,10 +306,12 @@ async function start(): Promise<void> {
 
     gameplayPausedForPortrait = false;
     gate.hidden = true;
-    setStatus("WASD/arrows move. Drag left side on touch. Press F3 or tap Debug.");
+    setStatus("");
+    updateTutorialPopup();
   }
 
   updateLaunchGate();
+  updateTutorialPopup();
 
   function setDebugEnabled(enabled: boolean): void {
     debugEnabled = enabled;
@@ -232,13 +319,27 @@ async function start(): Promise<void> {
   }
 
   function applyAvailableInteraction(): void {
-    if (!availableInteraction || !gameplayStarted || gameplayPausedForPortrait || isPortrait()) {
+    if (!availableInteraction || !canUseGameplayInput()) {
       return;
     }
+    if (availableInteraction.kind === "bird") {
+      quest = applyBirdStealAttempt(quest, player.position, bird.position, bird.attention, INTERACTION_RADIUS_PX);
+      if (quest.stage === "go_home") {
+        bird = createBirdRuntimeState();
+      }
+      refreshAvailableInteraction();
+      updateHud();
+      return;
+    }
+
     const previousLocation = quest.location;
+    const interactionKind = availableInteraction.kind;
     quest = applyQuestInteraction(quest, availableInteraction);
     if (quest.location !== previousLocation) {
-      enterMap(quest.location);
+      enterMap(quest.location, interactionKind);
+    }
+    if (interactionKind === "charles_exit" && quest.stage === "bird_snatch") {
+      startBirdSnatchEvent();
     }
     refreshAvailableInteraction();
     updateHud();
@@ -246,10 +347,13 @@ async function start(): Promise<void> {
 
   function restartFoundation(): void {
     quest = restartQuest();
+    tutorial = createTutorialState();
+    bird = createBirdRuntimeState();
     enterMap(quest.location);
     availableInteraction = null;
     lastTime = performance.now();
     updateHud();
+    updateTutorialPopup();
   }
 
   function getMapContext(id: MapId): MapContext {
@@ -260,26 +364,173 @@ async function start(): Promise<void> {
     return context;
   }
 
-  function enterMap(id: MapId): void {
+  function enterMap(id: MapId, source?: QuestInteraction["kind"]): void {
     activeMapContext = getMapContext(id);
-    player = createPlayer({ x: activeMapContext.playerSpawn.x, y: activeMapContext.playerSpawn.y });
+    const spawn =
+      id === "main_neighborhood_hub_day1" && source === "charles_exit"
+        ? (activeMapContext.questMarkers.charlesJr[0] ?? activeMapContext.playerSpawn)
+        : id === "home_interior_day1" && source === "home"
+          ? (activeMapContext.questMarkers.exit[0] ?? activeMapContext.playerSpawn)
+        : activeMapContext.playerSpawn;
+    player = createPlayer({ x: spawn.x, y: spawn.y });
   }
 
   function refreshAvailableInteraction(): void {
     availableInteraction = getAvailableQuestInteraction(
       quest,
       player.position,
-      activeMapContext.questMarkers,
+      getCurrentQuestMarkers(),
       INTERACTION_RADIUS_PX
     );
   }
 
+  function getActiveTarget(): ActiveInteractableTarget | null {
+    return getActiveInteractableTarget(quest, getCurrentQuestMarkers());
+  }
+
+  function getCurrentQuestMarkers(): QuestMarkerPositions {
+    return {
+      ...activeMapContext.questMarkers,
+      bird: bird.visible
+        ? [
+            {
+              x: bird.position.x,
+              y: bird.position.y,
+              tileX: Math.floor(bird.position.x / activeMapContext.map.tileSize),
+              tileY: Math.floor(bird.position.y / activeMapContext.map.tileSize)
+            }
+          ]
+        : []
+    };
+  }
+
+  function createBirdRuntimeState(): BirdRuntimeState {
+    return {
+      visible: false,
+      position: { x: 0, y: 0 },
+      attention: "watching",
+      elapsed: 0,
+      animationTime: 0
+    };
+  }
+
+  function startBirdSnatchEvent(): void {
+    bird = {
+      visible: true,
+      position: { x: player.position.x - 28, y: player.position.y - 36 },
+      attention: "watching",
+      elapsed: 0,
+      animationTime: 0
+    };
+  }
+
+  function updateBird(dt: number): void {
+    if (!bird.visible) {
+      return;
+    }
+
+    if (quest.stage === "bird_snatch") {
+      const nextElapsed = bird.elapsed + dt;
+      if (nextElapsed >= BIRD_SNATCH_SECONDS) {
+        const spawn =
+          activeMapContext.birdSpawns[0] ?? activeMapContext.questMarkers.charlesJr[0] ?? activeMapContext.playerSpawn;
+        bird = {
+          ...bird,
+          position: { x: spawn.x, y: spawn.y },
+          elapsed: 0,
+          animationTime: 0,
+          attention: "watching"
+        };
+        quest = advanceBirdSnatchEvent(quest);
+        return;
+      }
+
+      bird = {
+        ...bird,
+        elapsed: nextElapsed,
+        animationTime: bird.animationTime + dt
+      };
+      return;
+    }
+
+    if (quest.stage !== "find_bird" && quest.stage !== "steal_fries") {
+      return;
+    }
+
+    const nextElapsed = bird.elapsed + dt;
+    const phase = nextElapsed % 4;
+    bird = {
+      ...bird,
+      elapsed: nextElapsed,
+      animationTime: bird.animationTime + dt,
+      attention: phase < 2.2 ? "watching" : "distracted"
+    };
+  }
+
+  function updateBirdDiscovery(): void {
+    if (!bird.visible || quest.stage !== "find_bird") {
+      return;
+    }
+
+    const dx = player.position.x - bird.position.x;
+    const dy = player.position.y - bird.position.y;
+    if (Math.hypot(dx, dy) <= BIRD_DISCOVERY_RADIUS_PX) {
+      quest = discoverBird(quest);
+    }
+  }
+
+  function canUseGameplayInput(): boolean {
+    return gameplayStarted && !gameplayPausedForPortrait && !isPortrait() && !isTutorialBlockingGameplay(tutorial);
+  }
+
+  function updateTutorialPopup(): void {
+    if (!gameplayStarted || gameplayPausedForPortrait || isPortrait() || !tutorial.active) {
+      tutorialPopup.hidden = true;
+      return;
+    }
+
+    const content = TUTORIAL_CONTENT[tutorial.active];
+    tutorialTitle.textContent = content.title;
+    tutorialBody.replaceChildren(
+      ...content.body.map((line) => {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = line;
+        return paragraph;
+      })
+    );
+    tutorialButton.textContent = content.buttonLabel;
+    tutorialPopup.hidden = false;
+  }
+
   function updateHud(): void {
     objective.textContent = getQuestObjective(quest, inputMode);
-    questMessage.textContent = quest.message ?? "";
-    interactionPrompt.textContent = availableInteraction?.prompt ?? "";
-    interactButton.hidden = !availableInteraction || quest.stage === "complete";
+    const birdHint =
+      quest.stage === "steal_fries"
+        ? bird.attention === "watching"
+          ? "Wait until the bird looks away."
+          : "Tap ! to steal the fries back."
+        : "";
+    questMessage.textContent = quest.message ?? birdHint;
     restartButton.hidden = quest.stage !== "complete";
+  }
+
+  function pointerToVirtual(event: PointerEvent): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * VIRTUAL_VIEWPORT.width,
+      y: ((event.clientY - rect.top) / rect.height) * VIRTUAL_VIEWPORT.height
+    };
+  }
+
+  function virtualToWorld(point: { x: number; y: number }): { x: number; y: number } {
+    return {
+      x: point.x / lastRenderZoom + lastCamera.x,
+      y: point.y / lastRenderZoom + lastCamera.y
+    };
+  }
+
+  function getActiveRenderZoom(): number {
+    return activeMapContext.id === "main_neighborhood_hub_day1" ? OVERWORLD_RENDER_ZOOM : HOME_RENDER_ZOOM;
   }
 
   function frame(now: number): void {
@@ -287,7 +538,7 @@ async function start(): Promise<void> {
     lastTime = now;
     const moveVector = input.getMoveVector();
 
-    if (gameplayStarted && !gameplayPausedForPortrait && !isPortrait()) {
+    if (canUseGameplayInput()) {
       if (Math.hypot(moveVector.x, moveVector.y) > 0.01) {
         quest = markQuestMovementStarted(quest);
       }
@@ -295,22 +546,38 @@ async function start(): Promise<void> {
     }
 
     refreshAvailableInteraction();
+    tutorial = maybeOpenInteractionTutorial(
+      tutorial,
+      quest,
+      player.position,
+      activeMapContext.questMarkers.fridge,
+      INTERACTION_RADIUS_PX
+    );
+    updateBird(dt);
+    updateBirdDiscovery();
     updateHud();
+    updateTutorialPopup();
 
-    const visibleWorldViewport = getVisibleWorldViewport(VIRTUAL_VIEWPORT, HOME_RENDER_ZOOM);
+    const renderZoom = getActiveRenderZoom();
+    const visibleWorldViewport = getVisibleWorldViewport(VIRTUAL_VIEWPORT, renderZoom);
     const camera = clampCamera(
       player.position,
       { width: activeMapContext.map.worldWidth, height: activeMapContext.map.worldHeight },
       visibleWorldViewport
     );
+    lastCamera = camera;
+    lastRenderZoom = renderZoom;
     renderer.render({
       map: activeMapContext.map,
       collision: activeMapContext.collision,
       camera,
+      renderZoom,
       player,
       inputState: input.getTouchState(),
       debugEnabled,
-      questDebugText: `${quest.location} | quest ${quest.stage} | food ${quest.hasDogFood ? "yes" : "no"} | dogFed ${quest.dogFed ? "yes" : "no"} | fries ${quest.hasFries ? "yes" : "no"}`
+      activeInteractableTarget: getActiveTarget()?.markerPosition ?? null,
+      bird,
+      questDebugText: `${quest.location} | quest ${quest.stage} | food ${quest.hasDogFood ? "yes" : "no"} | dogFed ${quest.dogFed ? "yes" : "no"} | fries ${quest.hasFries ? "yes" : "no"} | stolen ${quest.friesStolen ? "yes" : "no"} | bird ${bird.visible ? bird.attention : "hidden"}`
     });
 
     requestAnimationFrame(frame);
