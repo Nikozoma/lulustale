@@ -1,0 +1,19 @@
+PASS 2 NIGHT SWORD AND BATTLE FLOW — INTENTIONALLY DEFERRED
+
+This content remains part of the intended demo arc, but it must not be implemented during the home foundation milestone.
+
+Later intended behavior:
+1. Lulu wakes to window pecking.
+2. Lulu investigates window.
+3. Lulu goes outside.
+4. Lulu finds shiny sword in bush.
+5. Lulu confronts bird gang.
+6. Night perception/animal communication appears.
+7. Lulu fights three birds with simple sword combat.
+8. Win path requires returning to bed.
+9. Loss path wakes Lulu on Day 2.
+
+Current status:
+INTENTIONALLY DEFERRED.
+
+Do not build night, sword, combat, or bird battle systems in the home foundation pass.

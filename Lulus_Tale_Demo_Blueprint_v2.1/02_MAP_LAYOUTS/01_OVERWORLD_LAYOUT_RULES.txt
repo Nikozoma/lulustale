@@ -1,0 +1,37 @@
+OVERWORLD LAYOUT RULES
+
+Reference:
+01_overworld_map_layout.png
+
+Purpose:
+Supports walking from home to Charles Jr., bird theft, bird chase, fries recovery, and later night confrontation.
+
+Color meaning:
+- Gray = roads, parking lot, drive lane.
+- Yellow = sidewalks/curbs.
+- Green = grass/open lawn.
+- Pink = Charles Jr.
+- Blue = Player Apartment/buildings.
+- Purple = Player Door.
+- Orange = Apartment 2.
+- Black/dark border = out-of-bounds.
+
+Specific map rules:
+- Left side of Charles Jr. is a parking lot.
+- Right side of Charles Jr. is a thin drive-through lane/normal road, not a parking lot.
+- Bottom areas not used for roads/buildings should remain grass.
+- Use the top connector route between Charles Jr. and apartment complex for return path.
+- Bird theft should trigger before Lulu reaches the apartment driveway/entrance.
+- Bird chase should lead to apartment complex right-side street, all the way toward the bottom.
+
+Required zones:
+- PlayerDoorTransitionZone
+- CharlesJrEntranceTransitionZone
+- CharlesJrReturnRouteTriggerZone
+- BirdTheftTriggerZone
+- BirdChaseWaypointZones
+- FriesRecoverySpot
+- BushHideSpot
+- OptionalSwordBushSpot for Pass 2
+- ApartmentReturnZone
+- NightBirdConfrontationZone for Pass 2

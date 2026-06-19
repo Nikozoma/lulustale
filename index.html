@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Lulu's Tale - Indoor Home Foundation</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" width="1280" height="720" aria-label="Lulu's Tale indoor home demo"></canvas>
+      <section id="orientation-gate" aria-live="polite">
+        <div class="gate-panel">
+          <h1 id="gate-title">Please turn phone sideways</h1>
+          <p id="gate-copy">Landscape mode is required for this indoor-home demo.</p>
+          <button id="gate-button" type="button">Tap to start</button>
+        </div>
+      </section>
+      <section id="hud" aria-live="polite">
+        <div id="objective"></div>
+        <div id="quest-message"></div>
+        <div id="interaction-prompt"></div>
+        <div class="hud-actions">
+          <button id="interact-button" type="button" hidden>Interact</button>
+          <button id="restart-button" type="button" hidden>Restart</button>
+        </div>
+      </section>
+      <button id="debug-toggle" type="button" aria-pressed="false">Debug</button>
+      <div id="status" aria-live="polite">Loading real assets...</div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

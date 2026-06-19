@@ -1,0 +1,26 @@
+MAP LAYOUT REFERENCE — v2.1
+
+Current source of truth for implementation:
+- home_interior_day1.semantic_tilemap.json
+
+Legacy map images may exist:
+- 01_overworld_map_layout.png
+- 02_home_layout.png
+- 03_charles_jr_layout.png
+- 00_README_COLOR_KEY_AND_LAYOUT_NOTES.txt
+
+Important:
+- Use the semantic JSON as exact source-of-truth for home foundation layout.
+- Legacy images are visual/topology references only.
+- Do not infer or invent map objects from old images if they are not in the semantic JSON.
+- Do not implement full overworld or Charles Jr. during the current home foundation milestone.
+
+Current home semantic map:
+- mapName: home_interior_day1
+- width: 28 tiles
+- height: 40 tiles
+- tile size: 32 game-world pixels
+- world size: 896 x 1280 game-world pixels
+- layers: ground, structures, objects, markers
+
+Tilemap Builder semantic colors/labels are allowed as authoring data. They are not runtime placeholder art. Runtime should use real assets where the semantic map calls for real objects/tiles.
