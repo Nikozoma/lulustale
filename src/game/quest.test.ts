@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   advanceBirdSnatchEvent,
+  advanceBirdGangIntro,
+  advanceSleepTransition,
+  advanceWakeSequence,
   applyBirdStealAttempt,
   applyQuestInteraction,
+  completeBirdGangFight,
   createQuestState,
   discoverBird,
   getActiveInteractableTarget,
@@ -11,6 +15,7 @@ import {
   getQuestObjective,
   markQuestMovementStarted,
   restartQuest,
+  startBirdGangIntro,
   triggerBirdSnatch,
   type QuestMarkerPositions
 } from "./quest";
@@ -23,7 +28,8 @@ const markers: QuestMarkerPositions = {
   order: [{ x: 304, y: 432, tileX: 9, tileY: 13 }],
   bird: [{ x: 336, y: 592, tileX: 10, tileY: 18 }],
   home: [{ x: 1168, y: 656, tileX: 36, tileY: 20 }],
-  bed: [{ x: 240, y: 112, tileX: 7, tileY: 3 }]
+  bed: [{ x: 240, y: 112, tileX: 7, tileY: 3 }],
+  sword: [{ x: 1168, y: 624, tileX: 36, tileY: 19 }]
 };
 
 describe("indoor home quest flow", () => {
@@ -100,7 +106,70 @@ describe("indoor home quest flow", () => {
     const bed = getAvailableQuestInteraction(quest, { x: 240, y: 112 }, markers, 40);
     expect(bed?.kind).toBe("bed");
     quest = applyQuestInteraction(quest, bed!);
+    expect(quest.stage).toBe("sleep_transition");
+    expect(quest.isNight).toBe(false);
+    expect(quest.message).toBe("Lulu goes to sleep...");
+    expect(getQuestObjective(quest, "desktop")).toBe("Lulu goes to sleep...");
+
+    quest = advanceSleepTransition(quest);
+    expect(quest.stage).toBe("wake_tapping");
+    expect(quest.isNight).toBe(true);
+    expect(quest.message).toBe("Tap... tap... tap...");
+
+    quest = advanceWakeSequence(quest);
+    expect(quest.message).toBe("Something is tapping on the window.");
+
+    quest = advanceWakeSequence(quest);
+    expect(quest.stage).toBe("go_outside");
+    expect(getQuestObjective(quest, "desktop")).toBe("Go outside.");
+    expect(quest.message).toBe("Lulu should check outside.");
+
+    const nightExit = getAvailableQuestInteraction(quest, { x: 80, y: 176 }, markers, 40);
+    expect(nightExit?.kind).toBe("exit");
+    quest = applyQuestInteraction(quest, nightExit!);
+    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.stage).toBe("night_overworld");
+    expect(quest.isNight).toBe(true);
+    expect(getQuestObjective(quest, "desktop")).toBe("Check outside.");
+
+    quest = startBirdGangIntro(quest);
+    expect(quest.stage).toBe("bird_gang_intro");
+    expect(quest.message).toBe("Three birds are waiting outside.");
+
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.message).toBe("They remember the fries.");
+
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.message).toBe("This means war.");
+
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.stage).toBe("find_sword");
+    expect(getQuestObjective(quest, "desktop")).toBe("Find something to defend yourself.");
+
+    const sword = getAvailableQuestInteraction(quest, { x: 1168, y: 624 }, markers, 40);
+    expect(sword?.kind).toBe("sword");
+    quest = applyQuestInteraction(quest, sword!);
+    expect(quest.stage).toBe("fight_birds");
+    expect(quest.hasSword).toBe(true);
+    expect(quest.message).toBe("Lulu found a sword in the bush. Obviously.");
+
+    quest = completeBirdGangFight(quest);
+    expect(quest.stage).toBe("go_back_inside");
+    expect(quest.birdGangDefeated).toBe(true);
+    expect(getQuestObjective(quest, "desktop")).toBe("Go back inside.");
+
+    const returnHome = getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 40);
+    expect(returnHome?.kind).toBe("home");
+    quest = applyQuestInteraction(quest, returnHome!);
+    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.stage).toBe("go_back_to_bed");
+    expect(getQuestObjective(quest, "desktop")).toBe("Go back to bed.");
+
+    const finalBed = getAvailableQuestInteraction(quest, { x: 240, y: 112 }, markers, 40);
+    expect(finalBed?.kind).toBe("bed");
+    quest = applyQuestInteraction(quest, finalBed!);
     expect(quest.stage).toBe("complete");
+    expect(quest.message).toBe("Lulu finally gets some sleep.");
     expect(getQuestObjective(quest, "desktop")).toBe("END OF DEMO");
 
     quest = restartQuest();
@@ -161,6 +230,31 @@ describe("indoor home quest flow", () => {
     expect(getAvailableQuestInteraction(quest, { x: 336, y: 592 }, markers, 42)?.kind).toBe("bird");
 
     quest = applyBirdStealAttempt(quest, { x: 336, y: 592 }, { x: 336, y: 592 }, "distracted", 42);
+    expect(getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 42)?.kind).toBe("home");
+
+    quest = applyQuestInteraction(quest, { kind: "home", prompt: "" });
+    expect(getAvailableQuestInteraction(quest, { x: 240, y: 112 }, markers, 42)?.kind).toBe("bed");
+
+    quest = applyQuestInteraction(quest, { kind: "bed", prompt: "" });
+    expect(getAvailableQuestInteraction(quest, nearExit, markers, 42)).toBeNull();
+
+    quest = advanceSleepTransition(quest);
+    expect(getAvailableQuestInteraction(quest, nearExit, markers, 42)).toBeNull();
+
+    quest = advanceWakeSequence(advanceWakeSequence(quest));
+    expect(getAvailableQuestInteraction(quest, nearDog, markers, 42)).toBeNull();
+    expect(getAvailableQuestInteraction(quest, { x: 240, y: 112 }, markers, 42)).toBeNull();
+    expect(getAvailableQuestInteraction(quest, nearExit, markers, 42)?.kind).toBe("exit");
+
+    quest = applyQuestInteraction(quest, { kind: "exit", prompt: "" });
+    quest = advanceBirdGangIntro(advanceBirdGangIntro(advanceBirdGangIntro(startBirdGangIntro(quest))));
+    expect(getAvailableQuestInteraction(quest, nearExit, markers, 42)).toBeNull();
+    expect(getAvailableQuestInteraction(quest, { x: 1168, y: 624 }, markers, 42)?.kind).toBe("sword");
+
+    quest = applyQuestInteraction(quest, { kind: "sword", prompt: "" });
+    expect(getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 42)).toBeNull();
+
+    quest = completeBirdGangFight(quest);
     expect(getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 42)?.kind).toBe("home");
 
     quest = applyQuestInteraction(quest, { kind: "home", prompt: "" });
@@ -233,6 +327,37 @@ describe("indoor home quest flow", () => {
 
     quest = applyQuestInteraction(quest, { kind: "bed", prompt: "" });
     expect(getActiveInteractableTarget(quest, markers)).toBeNull();
+
+    quest = advanceSleepTransition(quest);
+    expect(getActiveInteractableTarget(quest, markers)).toBeNull();
+
+    quest = advanceWakeSequence(advanceWakeSequence(quest));
+    expect(getActiveInteractableTarget(quest, markers)).toMatchObject({
+      kind: "exit",
+      markerPosition: { x: 80, y: 176 }
+    });
+
+    quest = applyQuestInteraction(quest, { kind: "exit", prompt: "" });
+    quest = advanceBirdGangIntro(advanceBirdGangIntro(advanceBirdGangIntro(startBirdGangIntro(quest))));
+    expect(getActiveInteractableTarget(quest, markers)).toMatchObject({
+      kind: "sword",
+      markerPosition: { x: 1168, y: 606 }
+    });
+
+    quest = applyQuestInteraction(quest, { kind: "sword", prompt: "" });
+    expect(getActiveInteractableTarget(quest, markers)).toBeNull();
+
+    quest = completeBirdGangFight(quest);
+    expect(getActiveInteractableTarget(quest, markers)).toMatchObject({
+      kind: "home",
+      markerPosition: { x: 1168, y: 648 }
+    });
+
+    quest = applyQuestInteraction(quest, { kind: "home", prompt: "" });
+    expect(getActiveInteractableTarget(quest, markers)).toMatchObject({
+      kind: "bed",
+      markerPosition: { x: 240, y: 90 }
+    });
   });
 
   it("allows tapping the active marker only when Lulu is also in interaction range", () => {
@@ -306,6 +431,93 @@ describe("indoor home quest flow", () => {
     expect(getQuestObjective(quest, "mobile")).toBe("It's getting late, time for bed.");
 
     quest = applyQuestInteraction(quest, { kind: "bed", prompt: "" });
+    expect(quest.stage).toBe("sleep_transition");
+    expect(quest.message).toBe("Lulu goes to sleep...");
+
+    quest = advanceSleepTransition(quest);
+    expect(quest.isNight).toBe(true);
+    expect(quest.message).toBe("Tap... tap... tap...");
+
+    quest = advanceWakeSequence(quest);
+    expect(quest.message).toBe("Something is tapping on the window.");
+
+    quest = advanceWakeSequence(quest);
+    expect(quest.stage).toBe("go_outside");
+    expect(getQuestObjective(quest, "mobile")).toBe("Go outside.");
+    expect(quest.message).toBe("Lulu should check outside.");
+  });
+
+  it("keeps night state active after wake-up exit and restart clears it", () => {
+    let quest = createQuestState();
+    quest = {
+      ...quest,
+      location: "home_interior_day1",
+      stage: "go_to_bed",
+      hasFries: true,
+      friesStolen: true,
+      friesRecovered: true
+    };
+
+    quest = applyQuestInteraction(quest, { kind: "bed", prompt: "" });
+    expect(quest.stage).not.toBe("complete");
+
+    quest = advanceSleepTransition(quest);
+    quest = advanceWakeSequence(advanceWakeSequence(quest));
+    expect(quest.stage).toBe("go_outside");
+    expect(quest.isNight).toBe(true);
+    expect(getActiveInteractableTarget(quest, markers)?.kind).toBe("exit");
+
+    quest = applyQuestInteraction(quest, { kind: "exit", prompt: "" });
+    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.stage).toBe("night_overworld");
+    expect(quest.isNight).toBe(true);
+    expect(getQuestObjective(quest, "mobile")).toBe("Check outside.");
+
+    expect(restartQuest()).toEqual(createQuestState());
+  });
+
+  it("runs bird gang intro, sword pickup, fight completion, return home, and final bed ending", () => {
+    let quest = createQuestState();
+    quest = {
+      ...quest,
+      location: "main_neighborhood_hub_day1",
+      stage: "night_overworld",
+      isNight: true
+    };
+
+    quest = startBirdGangIntro(quest);
+    expect(quest.message).toBe("Three birds are waiting outside.");
+    expect(getQuestObjective(quest, "mobile")).toBe("Check outside.");
+
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.message).toBe("They remember the fries.");
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.message).toBe("This means war.");
+    quest = advanceBirdGangIntro(quest);
+    expect(quest.stage).toBe("find_sword");
+    expect(getQuestObjective(quest, "mobile")).toBe("Find something to defend yourself.");
+
+    expect(getAvailableQuestInteraction(quest, { x: 16, y: 16 }, markers, 42)).toBeNull();
+    expect(getAvailableQuestInteraction(quest, { x: 1168, y: 624 }, markers, 42)?.kind).toBe("sword");
+
+    quest = applyQuestInteraction(quest, { kind: "sword", prompt: "" });
+    expect(quest.stage).toBe("fight_birds");
+    expect(quest.hasSword).toBe(true);
+    expect(getQuestObjective(quest, "mobile")).toBe("Defeat the bird gang.");
+
+    quest = completeBirdGangFight(quest);
+    expect(quest.stage).toBe("go_back_inside");
+    expect(quest.birdGangDefeated).toBe(true);
+    expect(quest.message).toBe("The bird gang has been defeated. For now.");
+
+    quest = applyQuestInteraction(quest, { kind: "home", prompt: "" });
+    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.stage).toBe("go_back_to_bed");
+    expect(getQuestObjective(quest, "mobile")).toBe("Go back to bed.");
+
+    quest = applyQuestInteraction(quest, { kind: "bed", prompt: "" });
     expect(quest.stage).toBe("complete");
+    expect(quest.isNight).toBe(true);
+    expect(quest.message).toBe("Lulu finally gets some sleep.");
   });
 });

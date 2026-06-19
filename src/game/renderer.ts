@@ -36,6 +36,15 @@ type RenderState = {
     attention: BirdAttention;
     animationTime: number;
   };
+  birdGang?: {
+    enemies: Array<{
+      position: WorldPoint;
+      defeated: boolean;
+      hitFlashSeconds: number;
+    }>;
+  };
+  nightMode?: boolean;
+  sleepOverlayAlpha?: number;
   questDebugText?: string;
 };
 
@@ -63,6 +72,7 @@ export class CanvasRenderer {
     this.drawDog(state.map);
     this.drawCashier(state.map);
     this.drawBird(state.bird);
+    this.drawBirdGang(state.birdGang);
     this.drawInteractableMarker(state.activeInteractableTarget);
     this.drawPlayer(state.player);
 
@@ -71,6 +81,7 @@ export class CanvasRenderer {
     }
 
     ctx.restore();
+    this.drawNightOverlay(state.nightMode, state.sleepOverlayAlpha);
     this.drawTouchControls(state.inputState);
     if (state.debugEnabled) {
       this.drawDevInfo(state);
@@ -277,6 +288,55 @@ export class CanvasRenderer {
     this.ctx.restore();
   }
 
+  private drawBirdGang(birdGang: RenderState["birdGang"]): void {
+    if (!birdGang) {
+      return;
+    }
+
+    for (const enemy of birdGang.enemies) {
+      if (enemy.defeated) {
+        continue;
+      }
+
+      this.drawBirdSprite(enemy.position, 0, enemy.hitFlashSeconds > 0);
+    }
+  }
+
+  private drawBirdSprite(position: WorldPoint, animationTime: number, hitFlash: boolean): void {
+    const image = this.images.get(this.manifest.bird.image.key);
+    if (!image) {
+      return;
+    }
+
+    const frameCount = Math.floor(image.width / this.manifest.bird.frameWidth);
+    const frameIndex = Math.floor(animationTime / 0.16) % frameCount;
+    const sourceX = frameIndex * this.manifest.bird.frameWidth;
+    const destWidth = 32;
+    const destHeight = 32;
+    const x = position.x - destWidth / 2;
+    const y = position.y - destHeight + 10;
+
+    this.ctx.drawImage(
+      image,
+      sourceX,
+      0,
+      this.manifest.bird.frameWidth,
+      this.manifest.bird.frameHeight,
+      x,
+      y,
+      destWidth,
+      destHeight
+    );
+
+    if (hitFlash) {
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.45;
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.fillRect(x, y, destWidth, destHeight);
+      this.ctx.restore();
+    }
+  }
+
   private drawInteractableMarker(target: WorldPoint | null | undefined): void {
     if (!target) {
       return;
@@ -366,6 +426,19 @@ export class CanvasRenderer {
     ctx.beginPath();
     ctx.arc(knob.x, knob.y, 28, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+  }
+
+  private drawNightOverlay(nightMode: boolean | undefined, sleepOverlayAlpha: number | undefined): void {
+    const alpha = Math.max(nightMode ? 0.24 : 0, sleepOverlayAlpha ?? 0);
+    if (alpha <= 0) {
+      return;
+    }
+
+    const { ctx } = this;
+    ctx.save();
+    ctx.fillStyle = `rgb(7 12 32 / ${alpha})`;
+    ctx.fillRect(0, 0, VIRTUAL_VIEWPORT.width, VIRTUAL_VIEWPORT.height);
     ctx.restore();
   }
 

@@ -15,6 +15,15 @@ export type QuestStage =
   | "steal_fries"
   | "go_home"
   | "go_to_bed"
+  | "sleep_transition"
+  | "wake_tapping"
+  | "go_outside"
+  | "night_overworld"
+  | "bird_gang_intro"
+  | "find_sword"
+  | "fight_birds"
+  | "go_back_inside"
+  | "go_back_to_bed"
   | "complete";
 export type QuestInteractionKind =
   | "fridge"
@@ -25,7 +34,8 @@ export type QuestInteractionKind =
   | "charles_exit"
   | "bird"
   | "home"
-  | "bed";
+  | "bed"
+  | "sword";
 export type BirdAttention = "watching" | "distracted";
 
 export type QuestState = {
@@ -36,6 +46,11 @@ export type QuestState = {
   hasFries: boolean;
   friesStolen: boolean;
   friesRecovered: boolean;
+  isNight: boolean;
+  wakeStep: number;
+  birdGangStep: number;
+  hasSword: boolean;
+  birdGangDefeated: boolean;
   message: string | null;
 };
 
@@ -48,6 +63,7 @@ export type QuestMarkerPositions = {
   bird: MarkerPosition[];
   home: MarkerPosition[];
   bed: MarkerPosition[];
+  sword: MarkerPosition[];
 };
 
 export type QuestInteraction = {
@@ -70,6 +86,11 @@ export function createQuestState(): QuestState {
     hasFries: false,
     friesStolen: false,
     friesRecovered: false,
+    isNight: false,
+    wakeStep: 0,
+    birdGangStep: 0,
+    hasSword: false,
+    birdGangDefeated: false,
     message: null
   };
 }
@@ -115,6 +136,23 @@ export function getQuestObjective(state: QuestState, inputMode: InputMode): stri
       return "Go home.";
     case "go_to_bed":
       return "It's getting late, time for bed.";
+    case "sleep_transition":
+      return "Lulu goes to sleep...";
+    case "wake_tapping":
+      return "Wake up.";
+    case "go_outside":
+      return "Go outside.";
+    case "night_overworld":
+    case "bird_gang_intro":
+      return "Check outside.";
+    case "find_sword":
+      return "Find something to defend yourself.";
+    case "fight_birds":
+      return "Defeat the bird gang.";
+    case "go_back_inside":
+      return "Go back inside.";
+    case "go_back_to_bed":
+      return "Go back to bed.";
     case "complete":
       return "END OF DEMO";
   }
@@ -162,6 +200,22 @@ export function getAvailableQuestInteraction(
     return { kind: "bed", prompt: "" };
   }
 
+  if (state.stage === "go_outside" && state.isNight && isNearAny(playerPosition, markers.exit, radius)) {
+    return { kind: "exit", prompt: "" };
+  }
+
+  if (state.stage === "find_sword" && state.isNight && isNearAny(playerPosition, markers.sword, radius)) {
+    return { kind: "sword", prompt: "" };
+  }
+
+  if (state.stage === "go_back_inside" && state.birdGangDefeated && isNearAny(playerPosition, markers.home, radius)) {
+    return { kind: "home", prompt: "" };
+  }
+
+  if (state.stage === "go_back_to_bed" && state.birdGangDefeated && isNearAny(playerPosition, markers.bed, radius)) {
+    return { kind: "bed", prompt: "" };
+  }
+
   return null;
 }
 
@@ -202,6 +256,22 @@ export function getActiveInteractableTarget(
   }
 
   if (state.stage === "go_to_bed" && state.friesRecovered) {
+    return firstTarget("bed", markers.bed);
+  }
+
+  if (state.stage === "go_outside" && state.isNight) {
+    return firstTarget("exit", markers.exit);
+  }
+
+  if (state.stage === "find_sword" && state.isNight) {
+    return firstTarget("sword", markers.sword);
+  }
+
+  if (state.stage === "go_back_inside" && state.birdGangDefeated) {
+    return firstTarget("home", markers.home);
+  }
+
+  if (state.stage === "go_back_to_bed" && state.birdGangDefeated) {
     return firstTarget("bed", markers.bed);
   }
 
@@ -294,12 +364,136 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_to_bed" && interaction.kind === "bed" && state.friesRecovered) {
     return {
       ...state,
-      stage: "complete",
+      stage: "sleep_transition",
+      message: "Lulu goes to sleep..."
+    };
+  }
+
+  if (state.stage === "go_outside" && interaction.kind === "exit" && state.isNight) {
+    return {
+      ...state,
+      location: "main_neighborhood_hub_day1",
+      stage: "night_overworld",
       message: null
     };
   }
 
+  if (state.stage === "find_sword" && interaction.kind === "sword" && state.isNight) {
+    return {
+      ...state,
+      stage: "fight_birds",
+      hasSword: true,
+      message: "Lulu found a sword in the bush. Obviously."
+    };
+  }
+
+  if (state.stage === "go_back_inside" && interaction.kind === "home" && state.birdGangDefeated) {
+    return {
+      ...state,
+      location: "home_interior_day1",
+      stage: "go_back_to_bed",
+      message: "Go back to bed."
+    };
+  }
+
+  if (state.stage === "go_back_to_bed" && interaction.kind === "bed" && state.birdGangDefeated) {
+    return {
+      ...state,
+      stage: "complete",
+      message: "Lulu finally gets some sleep."
+    };
+  }
+
   return state;
+}
+
+export function advanceSleepTransition(state: QuestState): QuestState {
+  if (state.stage !== "sleep_transition") {
+    return state;
+  }
+
+  return {
+    ...state,
+    stage: "wake_tapping",
+    isNight: true,
+    wakeStep: 0,
+    message: "Tap... tap... tap..."
+  };
+}
+
+export function advanceWakeSequence(state: QuestState): QuestState {
+  if (state.stage !== "wake_tapping") {
+    return state;
+  }
+
+  if (state.wakeStep === 0) {
+    return {
+      ...state,
+      wakeStep: 1,
+      message: "Something is tapping on the window."
+    };
+  }
+
+  return {
+    ...state,
+    stage: "go_outside",
+    wakeStep: 2,
+    message: "Lulu should check outside."
+  };
+}
+
+export function startBirdGangIntro(state: QuestState): QuestState {
+  if (state.stage !== "night_overworld" || !state.isNight) {
+    return state;
+  }
+
+  return {
+    ...state,
+    stage: "bird_gang_intro",
+    birdGangStep: 0,
+    message: "Three birds are waiting outside."
+  };
+}
+
+export function advanceBirdGangIntro(state: QuestState): QuestState {
+  if (state.stage !== "bird_gang_intro") {
+    return state;
+  }
+
+  if (state.birdGangStep === 0) {
+    return {
+      ...state,
+      birdGangStep: 1,
+      message: "They remember the fries."
+    };
+  }
+
+  if (state.birdGangStep === 1) {
+    return {
+      ...state,
+      birdGangStep: 2,
+      message: "This means war."
+    };
+  }
+
+  return {
+    ...state,
+    stage: "find_sword",
+    message: null
+  };
+}
+
+export function completeBirdGangFight(state: QuestState): QuestState {
+  if (state.stage !== "fight_birds" || !state.hasSword) {
+    return state;
+  }
+
+  return {
+    ...state,
+    stage: "go_back_inside",
+    birdGangDefeated: true,
+    message: "The bird gang has been defeated. For now."
+  };
 }
 
 export function triggerBirdSnatch(state: QuestState): QuestState {
@@ -393,6 +587,8 @@ function getMarkerPosition(kind: QuestInteractionKind, position: MarkerPosition)
       return { x: position.x, y: position.y - 8 };
     case "bed":
       return { x: position.x, y: position.y - 22 };
+    case "sword":
+      return { x: position.x, y: position.y - 18 };
   }
 }
 

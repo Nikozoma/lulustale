@@ -1,14 +1,26 @@
 import "./styles.css";
 import { ASSET_MANIFEST, loadImages } from "./game/assets";
 import { clampCamera, getVisibleWorldViewport } from "./game/camera";
+import {
+  applySwordAttack,
+  areAllBirdsDefeated,
+  createBirdGangRuntimeState,
+  spawnBirdGang,
+  updateBirdGang,
+  type BirdGangRuntimeState
+} from "./game/combat";
 import { HOME_RENDER_ZOOM, INTERACTION_RADIUS_PX, OVERWORLD_RENDER_ZOOM, VIRTUAL_VIEWPORT } from "./game/constants";
 import { createInputController } from "./game/input";
 import { getMapSpec, MAP_REGISTRY, type MapId } from "./game/mapRegistry";
 import { createPlayer, updatePlayer } from "./game/player";
 import {
   advanceBirdSnatchEvent,
+  advanceSleepTransition,
+  advanceWakeSequence,
   applyBirdStealAttempt,
   applyQuestInteraction,
+  advanceBirdGangIntro,
+  completeBirdGangFight,
   type BirdAttention,
   createQuestState,
   discoverBird,
@@ -18,6 +30,7 @@ import {
   getTappedQuestInteraction,
   markQuestMovementStarted,
   restartQuest,
+  startBirdGangIntro,
   type ActiveInteractableTarget,
   type QuestInteraction,
   type QuestMarkerPositions,
@@ -34,6 +47,7 @@ import {
 } from "./game/tutorial";
 import {
   buildCollisionGrid,
+  collectObjectRegions,
   findMarkerPositions,
   normalizeSemanticMap,
   type CollisionGrid,
@@ -67,6 +81,10 @@ canvasContext.imageSmoothingEnabled = false;
 
 const BIRD_SNATCH_SECONDS = 1.4;
 const BIRD_DISCOVERY_RADIUS_PX = 120;
+const SLEEP_TRANSITION_SECONDS = 1.1;
+const WAKE_MESSAGE_SECONDS = 1.6;
+const BIRD_GANG_MESSAGE_SECONDS = 1.6;
+const SWORD_ATTACK_COOLDOWN_SECONDS = 0.28;
 
 function setStatus(message: string): void {
   status.textContent = message;
@@ -165,9 +183,37 @@ function createMapContext(id: MapId, rawMap: RawSemanticMap): MapContext {
       order: findMarkerPositions(map, "order_interaction"),
       bird: [],
       home: findMarkerPositions(map, "transition_to_home").concat(findMarkerPositions(map, "player_door")),
-      bed: findMarkerPositions(map, "bed_interaction")
+      bed: findMarkerPositions(map, "bed_interaction"),
+      sword: findSwordPickupMarkers(id, map)
     }
   };
+}
+
+function findSwordPickupMarkers(id: MapId, map: SemanticMap): MarkerPosition[] {
+  if (id !== "main_neighborhood_hub_day1") {
+    return [];
+  }
+
+  const homeMarker =
+    findMarkerPositions(map, "transition_to_home")[0] ?? findMarkerPositions(map, "player_door")[0] ?? null;
+  const bushMarkers = collectObjectRegions(map)
+    .filter((region) => region.id === "bush")
+    .map((region) => ({
+      x: (region.tileX + region.widthTiles / 2) * map.tileSize,
+      y: (region.tileY + region.heightTiles / 2) * map.tileSize,
+      tileX: region.tileX,
+      tileY: region.tileY
+    }));
+
+  if (bushMarkers.length === 0) {
+    throw new Error("Night sword pickup requires a real overworld bush object, but none was found.");
+  }
+
+  if (!homeMarker) {
+    return [bushMarkers[0]];
+  }
+
+  return bushMarkers.sort((a, b) => distance(a, homeMarker) - distance(b, homeMarker)).slice(0, 1);
 }
 
 async function start(): Promise<void> {
@@ -193,6 +239,7 @@ async function start(): Promise<void> {
   let tutorial: TutorialState = createTutorialState();
   let availableInteraction: QuestInteraction | null = null;
   let bird: BirdRuntimeState = createBirdRuntimeState();
+  let birdGang: BirdGangRuntimeState = createBirdGangRuntimeState();
   const renderer = new CanvasRenderer(canvasContext, images, ASSET_MANIFEST);
 
   let debugEnabled = false;
@@ -202,6 +249,8 @@ async function start(): Promise<void> {
   let lastCamera = { x: 0, y: 0 };
   let lastRenderZoom = HOME_RENDER_ZOOM;
   let pointerDownPoint: { x: number; y: number; id: number } | null = null;
+  let scriptedQuestTimer = 0;
+  let swordAttackCooldown = 0;
 
   window.addEventListener("keydown", (event) => {
     if (event.code === "F3" && !event.repeat) {
@@ -212,6 +261,10 @@ async function start(): Promise<void> {
     }
     if (event.code === "KeyR" && !event.repeat && quest.stage === "complete") {
       restartFoundation();
+    }
+    if ((event.code === "Space" || event.code === "KeyJ") && !event.repeat) {
+      event.preventDefault();
+      attemptSwordAttack();
     }
   });
 
@@ -265,6 +318,11 @@ async function start(): Promise<void> {
     if (tappedInteraction) {
       availableInteraction = tappedInteraction;
       applyAvailableInteraction();
+      return;
+    }
+
+    if (pointerUpPoint.x > VIRTUAL_VIEWPORT.width / 2) {
+      attemptSwordAttack();
     }
   });
 
@@ -338,6 +396,9 @@ async function start(): Promise<void> {
     if (quest.location !== previousLocation) {
       enterMap(quest.location, interactionKind);
     }
+    if (quest.stage === "sleep_transition") {
+      scriptedQuestTimer = 0;
+    }
     if (interactionKind === "charles_exit" && quest.stage === "bird_snatch") {
       startBirdSnatchEvent();
     }
@@ -349,8 +410,11 @@ async function start(): Promise<void> {
     quest = restartQuest();
     tutorial = createTutorialState();
     bird = createBirdRuntimeState();
+    birdGang = createBirdGangRuntimeState();
     enterMap(quest.location);
     availableInteraction = null;
+    scriptedQuestTimer = 0;
+    swordAttackCooldown = 0;
     lastTime = performance.now();
     updateHud();
     updateTutorialPopup();
@@ -369,6 +433,8 @@ async function start(): Promise<void> {
     const spawn =
       id === "main_neighborhood_hub_day1" && source === "charles_exit"
         ? (activeMapContext.questMarkers.charlesJr[0] ?? activeMapContext.playerSpawn)
+        : id === "main_neighborhood_hub_day1" && source === "exit" && quest.isNight
+          ? (activeMapContext.questMarkers.home[0] ?? activeMapContext.playerSpawn)
         : id === "home_interior_day1" && source === "home"
           ? (activeMapContext.questMarkers.exit[0] ?? activeMapContext.playerSpawn)
         : activeMapContext.playerSpawn;
@@ -479,6 +545,74 @@ async function start(): Promise<void> {
     }
   }
 
+  function updateScriptedQuest(dt: number): void {
+    if (
+      quest.stage !== "sleep_transition" &&
+      quest.stage !== "wake_tapping" &&
+      quest.stage !== "night_overworld" &&
+      quest.stage !== "bird_gang_intro"
+    ) {
+      scriptedQuestTimer = 0;
+      return;
+    }
+
+    if (quest.stage === "night_overworld") {
+      quest = startBirdGangIntro(quest);
+      birdGang = spawnBirdGang(activeMapContext.questMarkers.home[0] ?? activeMapContext.playerSpawn);
+      scriptedQuestTimer = 0;
+      return;
+    }
+
+    scriptedQuestTimer += dt;
+    if (quest.stage === "sleep_transition" && scriptedQuestTimer >= SLEEP_TRANSITION_SECONDS) {
+      quest = advanceSleepTransition(quest);
+      scriptedQuestTimer = 0;
+      return;
+    }
+
+    if (quest.stage === "wake_tapping" && scriptedQuestTimer >= WAKE_MESSAGE_SECONDS) {
+      quest = advanceWakeSequence(quest);
+      scriptedQuestTimer = 0;
+      return;
+    }
+
+    if (quest.stage === "bird_gang_intro" && scriptedQuestTimer >= BIRD_GANG_MESSAGE_SECONDS) {
+      quest = advanceBirdGangIntro(quest);
+      scriptedQuestTimer = 0;
+    }
+  }
+
+  function getSleepOverlayAlpha(): number {
+    if (quest.stage !== "sleep_transition") {
+      return 0;
+    }
+
+    return Math.min(scriptedQuestTimer / SLEEP_TRANSITION_SECONDS, 1) * 0.52;
+  }
+
+  function attemptSwordAttack(): void {
+    if (!canUseGameplayInput() || quest.stage !== "fight_birds" || !quest.hasSword || swordAttackCooldown > 0) {
+      return;
+    }
+
+    const previousGang = birdGang;
+    birdGang = applySwordAttack(birdGang, player.position, player.facing);
+    swordAttackCooldown = SWORD_ATTACK_COOLDOWN_SECONDS;
+    if (birdGang !== previousGang && areAllBirdsDefeated(birdGang)) {
+      quest = completeBirdGangFight(quest);
+    }
+    refreshAvailableInteraction();
+    updateHud();
+  }
+
+  function updateBirdGangRuntime(dt: number): void {
+    swordAttackCooldown = Math.max(0, swordAttackCooldown - dt);
+    birdGang = updateBirdGang(birdGang, dt);
+    if (quest.stage === "fight_birds" && areAllBirdsDefeated(birdGang)) {
+      quest = completeBirdGangFight(quest);
+    }
+  }
+
   function canUseGameplayInput(): boolean {
     return gameplayStarted && !gameplayPausedForPortrait && !isPortrait() && !isTutorialBlockingGameplay(tutorial);
   }
@@ -555,6 +689,8 @@ async function start(): Promise<void> {
     );
     updateBird(dt);
     updateBirdDiscovery();
+    updateScriptedQuest(dt);
+    updateBirdGangRuntime(dt);
     updateHud();
     updateTutorialPopup();
 
@@ -577,13 +713,20 @@ async function start(): Promise<void> {
       debugEnabled,
       activeInteractableTarget: getActiveTarget()?.markerPosition ?? null,
       bird,
-      questDebugText: `${quest.location} | quest ${quest.stage} | food ${quest.hasDogFood ? "yes" : "no"} | dogFed ${quest.dogFed ? "yes" : "no"} | fries ${quest.hasFries ? "yes" : "no"} | stolen ${quest.friesStolen ? "yes" : "no"} | bird ${bird.visible ? bird.attention : "hidden"}`
+      birdGang,
+      nightMode: quest.isNight,
+      sleepOverlayAlpha: getSleepOverlayAlpha(),
+      questDebugText: `${quest.location} | quest ${quest.stage} | night ${quest.isNight ? "yes" : "no"} | sword ${quest.hasSword ? "yes" : "no"} | food ${quest.hasDogFood ? "yes" : "no"} | dogFed ${quest.dogFed ? "yes" : "no"} | fries ${quest.hasFries ? "yes" : "no"} | stolen ${quest.friesStolen ? "yes" : "no"} | bird ${bird.visible ? bird.attention : "hidden"}`
     });
 
     requestAnimationFrame(frame);
   }
 
   requestAnimationFrame(frame);
+}
+
+function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 start().catch((error: unknown) => {
