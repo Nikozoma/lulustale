@@ -1,0 +1,49 @@
+Lulu's Tale Tile Tool v1.3 vNext — Test Report
+===============================================
+
+Checks performed in a temporary copy of the provided LULUsTALE project:
+
+1. JavaScript syntax checks
+   - node --check server.mjs
+   - node --check src/editor.js
+   Result: PASS
+
+2. Launch/API health check
+   - Started server on local test port 5301.
+   - Called /api/health.
+   Result: PASS, version returned 1.3-vnext
+
+3. Map load/list check
+   - Called /api/maps.
+   - Found 4 map files in the current project copy:
+     - charles_jr_interior_day1.semantic_tilemap.json
+     - home_interior_day1_compact_corrected.semantic_tilemap.json
+     - home_interior_day1.semantic_tilemap.json
+     - main_neighborhood_hub_day1.semantic_tilemap.json
+   Result: PASS
+
+4. Asset browser scan check
+   - Called /api/assets.
+   - Found 658 image asset files across 85 folders in the current project copy.
+   Result: PASS
+
+5. Visual save/export validation test
+   - Loaded home_interior_day1.semantic_tilemap.json.
+   - Created one test visual placement using an existing project asset.
+   - Saved home_interior_day1.visual.json in the temporary project copy.
+   Result: PASS
+
+6. Backup behavior test
+   - Saved the visual file a second time.
+   - Confirmed a timestamped backup was created before overwrite.
+   Result: PASS
+
+7. Semantic safety test
+   - Compared SHA-256 of home_interior_day1.semantic_tilemap.json before and after visual-only saves.
+   - Semantic map hash remained unchanged.
+   Result: PASS
+
+Known limitations:
+- The game renderer may still need a Codex integration pass before it reads *.visual.json files at runtime.
+- The wall helper is still manual/semi-manual: crop selection + repeated drag/stamp. It does not yet auto-solve all wall corners.
+- Save As / export zip is not a full packaged project exporter yet; the direct save and downloadable visual JSON copy are implemented.

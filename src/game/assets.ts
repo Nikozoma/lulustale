@@ -77,6 +77,11 @@ const modernInteriors = imageAsset(
   "Modern_Interiors_Free_v2.2/Modern tiles_Free/Interiors_free/32x32/Interiors_free_32x32.png",
   "/assets/modern-interiors/Interiors_free_32x32.png"
 );
+const modernRoomBuilder = imageAsset(
+  "modernRoomBuilder32",
+  "Modern_Interiors_Free_v2.2/Modern tiles_Free/Room_Builder_free_32x32.png",
+  "/assets/modern-interiors/Room_Builder_free_32x32.png"
+);
 const cityProps = imageAsset(
   "cityPropTiles",
   "City Prop Tileset update 2.png",
@@ -145,6 +150,7 @@ export const ASSET_MANIFEST: AssetManifest = {
     furnitureState2,
     smallItems,
     modernInteriors,
+    modernRoomBuilder,
     cityProps,
     modernCity,
     natureGlobal,
@@ -159,8 +165,8 @@ export const ASSET_MANIFEST: AssetManifest = {
       crop: { x: 16, y: 80, width: 16, height: 16 }
     },
     home_wall: {
-      imageKey: floors.key,
-      crop: { x: 144, y: 48, width: 16, height: 16 }
+      imageKey: modernRoomBuilder.key,
+      crop: { x: 0, y: 544, width: 32, height: 32 }
     },
     indoor_floor: {
       imageKey: floors.key,

@@ -36,8 +36,8 @@ describe("asset manifest overworld readability mappings", () => {
       crop: { x: 16, y: 80, width: 16, height: 16 }
     });
     expect(ASSET_MANIFEST.tiles.home_wall).toMatchObject({
-      imageKey: "topDownFloorsWalls",
-      crop: { x: 144, y: 48, width: 16, height: 16 }
+      imageKey: "modernRoomBuilder32",
+      crop: { x: 0, y: 544, width: 32, height: 32 }
     });
     expect(ASSET_MANIFEST.tiles.entrance_exit).toMatchObject({
       imageKey: "topDownDoorsWindows",
@@ -69,7 +69,7 @@ describe("asset manifest overworld readability mappings", () => {
 
   it("loads the expanded real Home asset sheets through the manifest", () => {
     expect(ASSET_MANIFEST.images.map((asset) => asset.key)).toEqual(
-      expect.arrayContaining(["topDownFurnitureState2", "topDownSmallItems", "modernInteriors32"])
+      expect.arrayContaining(["topDownFurnitureState2", "topDownSmallItems", "modernInteriors32", "modernRoomBuilder32"])
     );
   });
 });
