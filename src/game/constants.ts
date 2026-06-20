@@ -3,8 +3,9 @@ export const VIRTUAL_VIEWPORT = {
   height: 720
 } as const;
 
-export const HOME_RENDER_ZOOM = 2.25;
-export const OVERWORLD_RENDER_ZOOM = 1.35;
+export const HOME_RENDER_ZOOM = 3.5;
+export const CHARLES_RENDER_ZOOM = 3.25;
+export const OVERWORLD_RENDER_ZOOM = 2.6;
 export const PLAYER_RENDER_SCALE = 1.25;
 export const PLAYER_SPRITE_ANCHOR_X = 0.5;
 export const PLAYER_SPRITE_ANCHOR_Y = 1;

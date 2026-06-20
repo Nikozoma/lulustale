@@ -839,7 +839,7 @@
     const blob = new Blob([JSON.stringify(state.map, null, 2) + '\n'], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${state.map.mapId || 'map'}.semantic_tilemap.json`;
+    a.download = `${state.map.mapId || 'map'}.json`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(a.href);

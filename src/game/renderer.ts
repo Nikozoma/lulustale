@@ -139,7 +139,7 @@ export class CanvasRenderer {
       for (let x = 0; x < map.widthTiles; x += 1) {
         const marker = map.layers.markers[y][x];
         const structure = map.layers.structures[y][x];
-        if (map.name === "home_interior_day1" && structure === "entrance_exit") {
+        if (map.name === "Home" && structure === "entrance_exit") {
           this.drawDoorFixture(this.manifest.tiles.entrance_exit, x, y, map.tileSize);
         }
         if (marker === "player_door" || marker === "transition_to_home") {
@@ -162,10 +162,6 @@ export class CanvasRenderer {
 
   private drawObjects(map: SemanticMap): void {
     for (const region of collectObjectRegions(map)) {
-      if (region.id === "dog_bowl") {
-        continue;
-      }
-
       const sprite = this.getObjectSprite(map, region.id);
       if (!sprite) {
         continue;
@@ -505,7 +501,7 @@ export class CanvasRenderer {
   }
 
   private getTileSprite(map: SemanticMap, cell: string): TileSprite | undefined {
-    if (map.name === "home_interior_day1") {
+    if (map.name === "Home") {
       if (cell === "indoor_floor") {
         return this.manifest.tiles.home_floor;
       }
@@ -519,8 +515,11 @@ export class CanvasRenderer {
   }
 
   private getObjectSprite(map: SemanticMap, id: string): ObjectSprite | undefined {
-    if (map.name === "home_interior_day1" && id === "dining_table") {
-      return this.manifest.objects.home_dining_table;
+    if (map.name === "Home") {
+      const homeSprite = this.manifest.objects[`home_${id}`];
+      if (homeSprite) {
+        return homeSprite;
+      }
     }
 
     return this.manifest.objects[id];

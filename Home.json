@@ -1,9 +1,9 @@
 {
   "format": "semantic_tilemap_builder_v2",
   "version": "2.3",
-  "mapId": "home_interior_day1",
-  "displayName": "Lulu's Home Interior",
-  "mapName": "home_interior_day1",
+  "mapId": "Home",
+  "displayName": "Home",
+  "mapName": "Home",
   "width": 10,
   "height": 13,
   "gameTileSizePx": 32,

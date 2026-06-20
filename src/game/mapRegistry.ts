@@ -1,4 +1,4 @@
-export type MapId = "home_interior_day1" | "main_neighborhood_hub_day1" | "charles_jr_interior_day1";
+export type MapId = "Home" | "Overworld" | "Charles";
 
 export type MapSpec = {
   id: MapId;
@@ -7,20 +7,20 @@ export type MapSpec = {
 };
 
 export const MAP_REGISTRY: Record<MapId, MapSpec> = {
-  home_interior_day1: {
-    id: "home_interior_day1",
-    fileName: "home_interior_day1.semantic_tilemap.json",
-    href: new URL("../../home_interior_day1.semantic_tilemap.json", import.meta.url).href
+  Home: {
+    id: "Home",
+    fileName: "Home.json",
+    href: new URL("../../Home.json", import.meta.url).href
   },
-  main_neighborhood_hub_day1: {
-    id: "main_neighborhood_hub_day1",
-    fileName: "main_neighborhood_hub_day1.semantic_tilemap.json",
-    href: new URL("../../main_neighborhood_hub_day1.semantic_tilemap.json", import.meta.url).href
+  Overworld: {
+    id: "Overworld",
+    fileName: "Overworld.json",
+    href: new URL("../../Overworld.json", import.meta.url).href
   },
-  charles_jr_interior_day1: {
-    id: "charles_jr_interior_day1",
-    fileName: "charles_jr_interior_day1.semantic_tilemap.json",
-    href: new URL("../../charles_jr_interior_day1.semantic_tilemap.json", import.meta.url).href
+  Charles: {
+    id: "Charles",
+    fileName: "Charles.json",
+    href: new URL("../../Charles.json", import.meta.url).href
   }
 };
 

@@ -25,7 +25,7 @@ const requiredIds = [
 
 describe("active compact home map", () => {
   function loadActiveMap() {
-    const path = resolve(process.cwd(), "home_interior_day1.semantic_tilemap.json");
+    const path = resolve(process.cwd(), "Home.json");
     const raw = JSON.parse(readFileSync(path, "utf8")) as RawSemanticMap & {
       mapId?: string;
       displayName?: string;
@@ -34,7 +34,7 @@ describe("active compact home map", () => {
     return { raw, map };
   }
 
-  it("uses the compact home_interior_day1 semantic map with required IDs", () => {
+  it("uses the compact Home semantic map with required IDs", () => {
     const { raw, map } = loadActiveMap();
     const ids = new Set<string>();
 
@@ -48,9 +48,9 @@ describe("active compact home map", () => {
       }
     }
 
-    expect(raw.mapId).toBe("home_interior_day1");
-    expect(raw.mapName).toBe("home_interior_day1");
-    expect(raw.displayName).toBe("Lulu's Home Interior");
+    expect(raw.mapId).toBe("Home");
+    expect(raw.mapName).toBe("Home");
+    expect(raw.displayName).toBe("Home");
     expect(map.widthTiles).toBe(10);
     expect(map.heightTiles).toBe(13);
     expect(map.tileSize).toBe(32);

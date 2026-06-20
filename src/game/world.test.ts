@@ -9,7 +9,7 @@ import {
 } from "./world";
 
 const mapFixture: RawSemanticMap = {
-  mapName: "home_interior_day1",
+  mapName: "Home",
   width: 4,
   height: 3,
   gameTileSizePx: 32,
@@ -42,7 +42,7 @@ describe("semantic home map helpers", () => {
   it("normalizes semantic map metadata and world size", () => {
     const map = normalizeSemanticMap(mapFixture);
 
-    expect(map.name).toBe("home_interior_day1");
+    expect(map.name).toBe("Home");
     expect(map.widthTiles).toBe(4);
     expect(map.heightTiles).toBe(3);
     expect(map.tileSize).toBe(32);

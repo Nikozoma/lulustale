@@ -79,7 +79,7 @@ export type ActiveInteractableTarget = {
 
 export function createQuestState(): QuestState {
   return {
-    location: "home_interior_day1",
+    location: "Home",
     stage: "movement",
     hasDogFood: false,
     dogFed: false,
@@ -317,7 +317,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_to_door" && interaction.kind === "exit" && state.dogFed) {
     return {
       ...state,
-      location: "main_neighborhood_hub_day1",
+      location: "Overworld",
       stage: "go_to_charles_jr",
       message: null
     };
@@ -326,7 +326,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_to_charles_jr" && interaction.kind === "charles_jr") {
     return {
       ...state,
-      location: "charles_jr_interior_day1",
+      location: "Charles",
       stage: "order_fries",
       message: null
     };
@@ -344,7 +344,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "leave_charles_jr" && interaction.kind === "charles_exit" && state.hasFries) {
     return {
       ...state,
-      location: "main_neighborhood_hub_day1",
+      location: "Overworld",
       stage: "bird_snatch",
       hasFries: false,
       friesStolen: true,
@@ -355,7 +355,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_home" && interaction.kind === "home" && state.friesRecovered) {
     return {
       ...state,
-      location: "home_interior_day1",
+      location: "Home",
       stage: "go_to_bed",
       message: "It's getting late, time for bed."
     };
@@ -372,7 +372,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_outside" && interaction.kind === "exit" && state.isNight) {
     return {
       ...state,
-      location: "main_neighborhood_hub_day1",
+      location: "Overworld",
       stage: "night_overworld",
       message: null
     };
@@ -390,7 +390,7 @@ export function applyQuestInteraction(state: QuestState, interaction: QuestInter
   if (state.stage === "go_back_inside" && interaction.kind === "home" && state.birdGangDefeated) {
     return {
       ...state,
-      location: "home_interior_day1",
+      location: "Home",
       stage: "go_back_to_bed",
       message: "Go back to bed."
     };
@@ -503,7 +503,7 @@ export function triggerBirdSnatch(state: QuestState): QuestState {
 
   return {
     ...state,
-    location: "main_neighborhood_hub_day1",
+    location: "Overworld",
     stage: "bird_snatch",
     hasFries: false,
     friesStolen: true,

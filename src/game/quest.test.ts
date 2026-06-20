@@ -36,7 +36,7 @@ describe("indoor home quest flow", () => {
   it("advances through the full first-day demo flow and restarts", () => {
     let quest = createQuestState();
 
-    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.location).toBe("Home");
     expect(getQuestObjective(quest, "desktop")).toBe("Drag the left side of the screen to move.");
     quest = markQuestMovementStarted(quest);
     expect(getQuestObjective(quest, "desktop")).toBe("Get food from the fridge.");
@@ -57,14 +57,14 @@ describe("indoor home quest flow", () => {
     const exit = getAvailableQuestInteraction(quest, { x: 80, y: 176 }, markers, 40);
     expect(exit?.kind).toBe("exit");
     quest = applyQuestInteraction(quest, exit!);
-    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.location).toBe("Overworld");
     expect(quest.stage).toBe("go_to_charles_jr");
     expect(getQuestObjective(quest, "desktop")).toBe("Go to Charles Jr.");
 
     const charlesJr = getAvailableQuestInteraction(quest, { x: 496, y: 656 }, markers, 40);
     expect(charlesJr?.kind).toBe("charles_jr");
     quest = applyQuestInteraction(quest, charlesJr!);
-    expect(quest.location).toBe("charles_jr_interior_day1");
+    expect(quest.location).toBe("Charles");
     expect(quest.stage).toBe("order_fries");
     expect(getQuestObjective(quest, "desktop")).toBe("Order fries at the counter.");
 
@@ -78,7 +78,7 @@ describe("indoor home quest flow", () => {
     const charlesExit = getAvailableQuestInteraction(quest, { x: 80, y: 176 }, markers, 40);
     expect(charlesExit?.kind).toBe("charles_exit");
     quest = applyQuestInteraction(quest, charlesExit!);
-    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.location).toBe("Overworld");
     expect(quest.stage).toBe("bird_snatch");
     expect(quest.hasFries).toBe(false);
     expect(quest.friesStolen).toBe(true);
@@ -99,7 +99,7 @@ describe("indoor home quest flow", () => {
     const home = getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 40);
     expect(home?.kind).toBe("home");
     quest = applyQuestInteraction(quest, home!);
-    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.location).toBe("Home");
     expect(quest.stage).toBe("go_to_bed");
     expect(getQuestObjective(quest, "desktop")).toBe("It's getting late, time for bed.");
 
@@ -127,7 +127,7 @@ describe("indoor home quest flow", () => {
     const nightExit = getAvailableQuestInteraction(quest, { x: 80, y: 176 }, markers, 40);
     expect(nightExit?.kind).toBe("exit");
     quest = applyQuestInteraction(quest, nightExit!);
-    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.location).toBe("Overworld");
     expect(quest.stage).toBe("night_overworld");
     expect(quest.isNight).toBe(true);
     expect(getQuestObjective(quest, "desktop")).toBe("Check outside.");
@@ -161,7 +161,7 @@ describe("indoor home quest flow", () => {
     const returnHome = getAvailableQuestInteraction(quest, { x: 1168, y: 656 }, markers, 40);
     expect(returnHome?.kind).toBe("home");
     quest = applyQuestInteraction(quest, returnHome!);
-    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.location).toBe("Home");
     expect(quest.stage).toBe("go_back_to_bed");
     expect(getQuestObjective(quest, "desktop")).toBe("Go back to bed.");
 
@@ -373,7 +373,7 @@ describe("indoor home quest flow", () => {
     let quest = createQuestState();
     quest = {
       ...quest,
-      location: "main_neighborhood_hub_day1",
+      location: "Overworld",
       stage: "find_bird",
       friesStolen: true
     };
@@ -402,13 +402,13 @@ describe("indoor home quest flow", () => {
     let quest = createQuestState();
     quest = {
       ...quest,
-      location: "charles_jr_interior_day1",
+      location: "Charles",
       stage: "leave_charles_jr",
       hasFries: true
     };
 
     quest = triggerBirdSnatch(quest);
-    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.location).toBe("Overworld");
     expect(quest.stage).toBe("bird_snatch");
     expect(quest.hasFries).toBe(false);
     expect(quest.friesStolen).toBe(true);
@@ -451,7 +451,7 @@ describe("indoor home quest flow", () => {
     let quest = createQuestState();
     quest = {
       ...quest,
-      location: "home_interior_day1",
+      location: "Home",
       stage: "go_to_bed",
       hasFries: true,
       friesStolen: true,
@@ -468,7 +468,7 @@ describe("indoor home quest flow", () => {
     expect(getActiveInteractableTarget(quest, markers)?.kind).toBe("exit");
 
     quest = applyQuestInteraction(quest, { kind: "exit", prompt: "" });
-    expect(quest.location).toBe("main_neighborhood_hub_day1");
+    expect(quest.location).toBe("Overworld");
     expect(quest.stage).toBe("night_overworld");
     expect(quest.isNight).toBe(true);
     expect(getQuestObjective(quest, "mobile")).toBe("Check outside.");
@@ -480,7 +480,7 @@ describe("indoor home quest flow", () => {
     let quest = createQuestState();
     quest = {
       ...quest,
-      location: "main_neighborhood_hub_day1",
+      location: "Overworld",
       stage: "night_overworld",
       isNight: true
     };
@@ -511,7 +511,7 @@ describe("indoor home quest flow", () => {
     expect(quest.message).toBe("The bird gang has been defeated. For now.");
 
     quest = applyQuestInteraction(quest, { kind: "home", prompt: "" });
-    expect(quest.location).toBe("home_interior_day1");
+    expect(quest.location).toBe("Home");
     expect(quest.stage).toBe("go_back_to_bed");
     expect(getQuestObjective(quest, "mobile")).toBe("Go back to bed.");
 

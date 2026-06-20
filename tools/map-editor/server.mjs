@@ -25,6 +25,7 @@ const MIME_TYPES = {
 };
 
 const SKIP_DIRS = new Set(['.git', '.codex', 'node_modules', 'tools', 'dist']);
+const MAP_FILE_NAMES = new Set(['Home.json', 'Charles.json', 'Overworld.json']);
 
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -61,8 +62,8 @@ function safeProjectRelativePath(input) {
 
 function safeMapFileName(fileName) {
   const safe = basename(String(fileName || ''));
-  if (!safe || safe !== fileName || !safe.endsWith('.semantic_tilemap.json')) {
-    throw new Error('Invalid map filename. Expected a root-level *.semantic_tilemap.json file.');
+  if (!safe || safe !== fileName || !MAP_FILE_NAMES.has(safe)) {
+    throw new Error('Invalid map filename. Expected Home.json, Charles.json, or Overworld.json.');
   }
   return safe;
 }
@@ -125,7 +126,7 @@ function validateAssetLayers(assetLayers, width, height) {
 async function listMaps() {
   const entries = await readdir(PROJECT_ROOT, { withFileTypes: true });
   const files = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.semantic_tilemap.json'))
+    .filter((entry) => entry.isFile() && MAP_FILE_NAMES.has(entry.name))
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
@@ -135,7 +136,7 @@ async function listMaps() {
       const raw = JSON.parse(await readFile(join(PROJECT_ROOT, fileName), 'utf8'));
       maps.push({
         fileName,
-        mapId: raw.mapId || raw.mapName || fileName.replace('.semantic_tilemap.json', ''),
+        mapId: raw.mapId || raw.mapName || fileName.replace('.json', ''),
         displayName: raw.displayName || raw.mapName || raw.mapId || fileName,
         width: raw.width,
         height: raw.height,

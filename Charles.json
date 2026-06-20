@@ -1,9 +1,9 @@
 {
   "format": "semantic_tilemap_builder_v2",
   "version": "2.3",
-  "mapId": "charles_jr_interior_day1",
-  "displayName": "Charles Jr. Interior",
-  "mapName": "charles_jr_interior_day1",
+  "mapId": "Charles",
+  "displayName": "Charles",
+  "mapName": "Charles",
   "width": 18,
   "height": 18,
   "gameTileSizePx": 32,

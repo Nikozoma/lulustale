@@ -9,7 +9,13 @@ import {
   updateBirdGang,
   type BirdGangRuntimeState
 } from "./game/combat";
-import { HOME_RENDER_ZOOM, INTERACTION_RADIUS_PX, OVERWORLD_RENDER_ZOOM, VIRTUAL_VIEWPORT } from "./game/constants";
+import {
+  CHARLES_RENDER_ZOOM,
+  HOME_RENDER_ZOOM,
+  INTERACTION_RADIUS_PX,
+  OVERWORLD_RENDER_ZOOM,
+  VIRTUAL_VIEWPORT
+} from "./game/constants";
 import { createInputController } from "./game/input";
 import { getMapSpec, MAP_REGISTRY, type MapId } from "./game/mapRegistry";
 import { createPlayer, updatePlayer } from "./game/player";
@@ -190,7 +196,7 @@ function createMapContext(id: MapId, rawMap: RawSemanticMap): MapContext {
 }
 
 function findSwordPickupMarkers(id: MapId, map: SemanticMap): MarkerPosition[] {
-  if (id !== "main_neighborhood_hub_day1") {
+  if (id !== "Overworld") {
     return [];
   }
 
@@ -230,7 +236,7 @@ async function start(): Promise<void> {
   const mapContexts = new Map<MapId, MapContext>(
     rawMaps.map(([id, rawMap]) => [id, createMapContext(id, rawMap)])
   );
-  let activeMapContext = getMapContext("home_interior_day1");
+  let activeMapContext = getMapContext("Home");
 
   const input = createInputController(canvas, VIRTUAL_VIEWPORT);
   const inputMode = isLikelyTouchDevice() ? "mobile" : "desktop";
@@ -431,11 +437,11 @@ async function start(): Promise<void> {
   function enterMap(id: MapId, source?: QuestInteraction["kind"]): void {
     activeMapContext = getMapContext(id);
     const spawn =
-      id === "main_neighborhood_hub_day1" && source === "charles_exit"
+      id === "Overworld" && source === "charles_exit"
         ? (activeMapContext.questMarkers.charlesJr[0] ?? activeMapContext.playerSpawn)
-        : id === "main_neighborhood_hub_day1" && source === "exit" && quest.isNight
+        : id === "Overworld" && source === "exit" && quest.isNight
           ? (activeMapContext.questMarkers.home[0] ?? activeMapContext.playerSpawn)
-        : id === "home_interior_day1" && source === "home"
+        : id === "Home" && source === "home"
           ? (activeMapContext.questMarkers.exit[0] ?? activeMapContext.playerSpawn)
         : activeMapContext.playerSpawn;
     player = createPlayer({ x: spawn.x, y: spawn.y });
@@ -664,7 +670,14 @@ async function start(): Promise<void> {
   }
 
   function getActiveRenderZoom(): number {
-    return activeMapContext.id === "main_neighborhood_hub_day1" ? OVERWORLD_RENDER_ZOOM : HOME_RENDER_ZOOM;
+    switch (activeMapContext.id) {
+      case "Home":
+        return HOME_RENDER_ZOOM;
+      case "Charles":
+        return CHARLES_RENDER_ZOOM;
+      case "Overworld":
+        return OVERWORLD_RENDER_ZOOM;
+    }
   }
 
   function frame(now: number): void {

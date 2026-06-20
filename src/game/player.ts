@@ -26,26 +26,22 @@ export function updatePlayer(
   map: SemanticMap,
   collision: CollisionGrid
 ): void {
-  const length = Math.hypot(inputVector.x, inputVector.y);
+  const movement = normalizeMovementInput(inputVector);
 
-  if (length < 0.001) {
+  if (movement.strength < 0.001) {
     player.isMoving = false;
     player.animationTime = 0;
     return;
   }
 
-  const direction = {
-    x: inputVector.x / length,
-    y: inputVector.y / length
-  };
-  const distance = PLAYER.speedPxPerSecond * Math.min(length, 1) * dt;
+  const distance = PLAYER.speedPxPerSecond * movement.strength * dt;
   const nextX = {
-    x: player.position.x + direction.x * distance,
+    x: player.position.x + movement.direction.x * distance,
     y: player.position.y
   };
   const nextY = {
     x: player.position.x,
-    y: player.position.y + direction.y * distance
+    y: player.position.y + movement.direction.y * distance
   };
 
   if (canOccupyCircle(map, collision, nextX, PLAYER.collisionRadiusPx)) {
@@ -56,9 +52,24 @@ export function updatePlayer(
     player.position.y = nextY.y;
   }
 
-  player.facing = facingFromVector(direction);
+  player.facing = facingFromVector(movement.direction);
   player.isMoving = true;
   player.animationTime += dt;
+}
+
+function normalizeMovementInput(inputVector: WorldPoint): { direction: WorldPoint; strength: number } {
+  const length = Math.hypot(inputVector.x, inputVector.y);
+  if (length < 0.001) {
+    return { direction: { x: 0, y: 0 }, strength: 0 };
+  }
+
+  return {
+    direction: {
+      x: inputVector.x / length,
+      y: inputVector.y / length
+    },
+    strength: Math.min(length, 1)
+  };
 }
 
 function facingFromVector(vector: WorldPoint): Facing {

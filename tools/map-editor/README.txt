@@ -4,7 +4,7 @@ Lulu's Tale Project Map Editor v1.1 Asset POC
 Purpose
 -------
 This is a project-local map editor for Lulu's Tale.
-It edits the actual root-level *.semantic_tilemap.json files used by the project.
+It edits the actual root-level map JSON files used by the project.
 
 v1.1 adds an Asset Tile Paint mode so you can manually place exact cropped visual tiles from the PNG assets already inside the project folder.
 
@@ -12,26 +12,26 @@ Install
 -------
 Copy the included tools folder into the root of your Lulu's Tale project so the path becomes:
 
-tools/map-editor/RUN_MAP_EDITOR.bat
+tools/map-editor/tiletool.bat
 
 The project root should also contain files like:
-- home_interior_day1.semantic_tilemap.json
-- main_neighborhood_hub_day1.semantic_tilemap.json
-- charles_jr_interior_day1.semantic_tilemap.json
+- Home.json
+- Overworld.json
+- Charles.json
 - package.json
 
 Run
 ---
 Double-click:
 
-tools/map-editor/RUN_MAP_EDITOR.bat
+tools/map-editor/tiletool.bat
 
 It starts a tiny local Node server and opens the editor in your browser.
 Close the PowerShell/CMD window to stop the editor.
 
 What v1.1 can do
 ----------------
-- Find root-level *.semantic_tilemap.json files in the project folder.
+- Find root-level map JSON files in the project folder.
 - Load existing game map JSON files.
 - Paint/edit semantic layers:
   - ground

@@ -62,6 +62,16 @@ const furniture = imageAsset(
   "Top-Down_Retro_Interior/TopDownHouse_FurnitureState1.png",
   "/assets/top-down-retro-interior/TopDownHouse_FurnitureState1.png"
 );
+const furnitureState2 = imageAsset(
+  "topDownFurnitureState2",
+  "Top-Down_Retro_Interior/TopDownHouse_FurnitureState2.png",
+  "/assets/top-down-retro-interior/TopDownHouse_FurnitureState2.png"
+);
+const smallItems = imageAsset(
+  "topDownSmallItems",
+  "Top-Down_Retro_Interior/TopDownHouse_SmallItems.png",
+  "/assets/top-down-retro-interior/TopDownHouse_SmallItems.png"
+);
 const modernInteriors = imageAsset(
   "modernInteriors32",
   "Modern_Interiors_Free_v2.2/Modern tiles_Free/Interiors_free/32x32/Interiors_free_32x32.png",
@@ -132,6 +142,8 @@ export const ASSET_MANIFEST: AssetManifest = {
     floors,
     doors,
     furniture,
+    furnitureState2,
+    smallItems,
     modernInteriors,
     cityProps,
     modernCity,
@@ -260,7 +272,13 @@ export const ASSET_MANIFEST: AssetManifest = {
       imageKey: modernInteriors.key,
       crop: { x: 224, y: 2400, width: 64, height: 64 },
       render: { mode: "fit", widthTiles: 1.7, heightTiles: 2, anchor: "bottom" },
-      note: "Clear real bed crop from Modern_Interiors_Free_v2.2, used because TopDownHouse_FurnitureState1.png did not contain a bed-like crop that read clearly in Lulu's one-by-two bed footprint."
+      note: "Legacy generic bed mapping retained for non-Home maps; Home uses the clearer home_bed crop below."
+    },
+    home_bed: {
+      imageKey: modernInteriors.key,
+      crop: { x: 224, y: 0, width: 64, height: 128 },
+      render: { mode: "fit", widthTiles: 1.85, heightTiles: 2.15, anchor: "bottom" },
+      note: "Home-only full bed crop from Interiors_free_32x32.png, chosen from the expanded public/assets set because it reads as an actual bed in Lulu's one-by-two bed footprint."
     },
     doorway: {
       imageKey: doors.key,
@@ -273,6 +291,12 @@ export const ASSET_MANIFEST: AssetManifest = {
       crop: { x: 0, y: 192, width: 32, height: 48 },
       render: { mode: "fit", widthTiles: 1, heightTiles: 1.75, anchor: "bottom" },
       note: "Vertical side-couch crop from TopDownHouse_FurnitureState1.png, fitted to the home couch footprint."
+    },
+    home_couch: {
+      imageKey: furniture.key,
+      crop: { x: 0, y: 192, width: 32, height: 64 },
+      render: { mode: "fit", widthTiles: 1, heightTiles: 2, anchor: "bottom" },
+      note: "Home-only full vertical couch crop from TopDownHouse_FurnitureState1.png; replaces the shorter generic crop so the two-cell couch footprint reads as one sofa."
     },
     table: {
       imageKey: furniture.key,
@@ -298,6 +322,12 @@ export const ASSET_MANIFEST: AssetManifest = {
       render: { mode: "fit", widthTiles: 1, heightTiles: 2, anchor: "bottom" },
       note: "Visible refrigerator from TopDownHouse_FurnitureState1.png."
     },
+    home_refrigerator: {
+      imageKey: furnitureState2.key,
+      crop: { x: 32, y: 192, width: 32, height: 64 },
+      render: { mode: "fit", widthTiles: 1, heightTiles: 2, anchor: "bottom" },
+      note: "Home-only refrigerator from TopDownHouse_FurnitureState2.png with clearer interior detail for the dog-food objective."
+    },
     stove: {
       imageKey: furniture.key,
       crop: { x: 64, y: 192, width: 32, height: 32 },
@@ -310,11 +340,29 @@ export const ASSET_MANIFEST: AssetManifest = {
       render: { mode: "fit", widthTiles: 1, heightTiles: 1, anchor: "bottom" },
       note: "Visible sink from TopDownHouse_FurnitureState1.png."
     },
+    home_sink: {
+      imageKey: furnitureState2.key,
+      crop: { x: 96, y: 192, width: 32, height: 32 },
+      render: { mode: "fit", widthTiles: 1, heightTiles: 1, anchor: "bottom" },
+      note: "Home-only sink from TopDownHouse_FurnitureState2.png, selected for stronger blue basin readability in the kitchen row."
+    },
     counter_top: {
       imageKey: furniture.key,
       crop: { x: 128, y: 224, width: 32, height: 32 },
       render: { mode: "tile", anchor: "bottom" },
       note: "Tiled cabinet-front crop from TopDownHouse_FurnitureState1.png, using a full 32px cabinet cell for the fragmented home kitchen counters."
+    },
+    home_counter_top: {
+      imageKey: furnitureState2.key,
+      crop: { x: 128, y: 192, width: 32, height: 32 },
+      render: { mode: "tile", anchor: "bottom" },
+      note: "Home-only cabinet/counter tile from TopDownHouse_FurnitureState2.png for cleaner kitchen readability without changing semantic counter cells."
+    },
+    home_dog_bowl: {
+      imageKey: smallItems.key,
+      crop: { x: 64, y: 64, width: 16, height: 16 },
+      render: { mode: "fit", widthTiles: 0.62, heightTiles: 0.45, anchor: "center" },
+      note: "Small real bowl crop from TopDownHouse_SmallItems.png, used only for Home dog_bowl so the feed-dog objective has a visible prop."
     },
     cashier_counter: {
       imageKey: furniture.key,

@@ -30,7 +30,7 @@ describe("asset manifest overworld readability mappings", () => {
     expect(ASSET_MANIFEST.tiles.charles_jr_door.imageKey).toBe("cityPropTiles");
   });
 
-  it("maps home-specific indoor polish sprites to real Top-Down_Retro_Interior assets", () => {
+  it("maps home-specific indoor polish sprites to real expanded public assets", () => {
     expect(ASSET_MANIFEST.tiles.home_floor).toMatchObject({
       imageKey: "topDownFloorsWalls",
       crop: { x: 16, y: 80, width: 16, height: 16 }
@@ -48,10 +48,28 @@ describe("asset manifest overworld readability mappings", () => {
       imageKey: "topDownFurnitureState1",
       render: { mode: "fit", widthTiles: 2, heightTiles: 1 }
     });
-    expect(ASSET_MANIFEST.objects.bed).toMatchObject({
+    expect(ASSET_MANIFEST.objects.home_bed).toMatchObject({
       imageKey: "modernInteriors32",
-      crop: { x: 224, y: 2400, width: 64, height: 64 },
-      render: { mode: "fit", widthTiles: 1.7, heightTiles: 2 }
+      crop: { x: 224, y: 0, width: 64, height: 128 },
+      render: { mode: "fit", widthTiles: 1.85, heightTiles: 2.15 }
     });
+    expect(ASSET_MANIFEST.objects.home_refrigerator).toMatchObject({
+      imageKey: "topDownFurnitureState2",
+      crop: { x: 32, y: 192, width: 32, height: 64 }
+    });
+    expect(ASSET_MANIFEST.objects.home_counter_top).toMatchObject({
+      imageKey: "topDownFurnitureState2",
+      crop: { x: 128, y: 192, width: 32, height: 32 }
+    });
+    expect(ASSET_MANIFEST.objects.home_dog_bowl).toMatchObject({
+      imageKey: "topDownSmallItems",
+      crop: { x: 64, y: 64, width: 16, height: 16 }
+    });
+  });
+
+  it("loads the expanded real Home asset sheets through the manifest", () => {
+    expect(ASSET_MANIFEST.images.map((asset) => asset.key)).toEqual(
+      expect.arrayContaining(["topDownFurnitureState2", "topDownSmallItems", "modernInteriors32"])
+    );
   });
 });

@@ -1,9 +1,9 @@
 {
   "format": "semantic_tilemap_builder_v2",
   "version": "2.3",
-  "mapId": "main_neighborhood_hub_day1",
-  "displayName": "Main Neighborhood Hub",
-  "mapName": "main_neighborhood_hub_day1",
+  "mapId": "Overworld",
+  "displayName": "Overworld",
+  "mapName": "Overworld",
   "width": 42,
   "height": 30,
   "gameTileSizePx": 32,

@@ -8,23 +8,23 @@ import { buildCollisionGrid, findMarkerPositions } from "./world";
 describe("map registry", () => {
   it("contains home, overworld, and Charles Jr. map specs", () => {
     expect(Object.keys(MAP_REGISTRY).sort()).toEqual([
-      "charles_jr_interior_day1",
-      "home_interior_day1",
-      "main_neighborhood_hub_day1"
+      "Charles",
+      "Home",
+      "Overworld"
     ]);
-    expect(getMapSpec("home_interior_day1").fileName).toBe("home_interior_day1.semantic_tilemap.json");
-    expect(getMapSpec("main_neighborhood_hub_day1").fileName).toBe(
-      "main_neighborhood_hub_day1.semantic_tilemap.json"
+    expect(getMapSpec("Home").fileName).toBe("Home.json");
+    expect(getMapSpec("Overworld").fileName).toBe(
+      "Overworld.json"
     );
-    expect(getMapSpec("charles_jr_interior_day1").fileName).toBe(
-      "charles_jr_interior_day1.semantic_tilemap.json"
+    expect(getMapSpec("Charles").fileName).toBe(
+      "Charles.json"
     );
   });
 
   it("loads the reviewed main neighborhood hub semantic map metadata", () => {
-    const map = loadSemanticMapFromProjectFile("main_neighborhood_hub_day1");
+    const map = loadSemanticMapFromProjectFile("Overworld");
 
-    expect(map.name).toBe("main_neighborhood_hub_day1");
+    expect(map.name).toBe("Overworld");
     expect(map.widthTiles).toBe(42);
     expect(map.heightTiles).toBe(30);
     expect(map.tileSize).toBe(32);
@@ -37,7 +37,7 @@ describe("map registry", () => {
   });
 
   it("classifies main neighborhood hub collision from outdoor semantic IDs", () => {
-    const map = loadSemanticMapFromProjectFile("main_neighborhood_hub_day1");
+    const map = loadSemanticMapFromProjectFile("Overworld");
     const collision = buildCollisionGrid(map);
 
     expect(collision.isSolidTile(0, 0)).toBe(false); // street
@@ -60,9 +60,9 @@ describe("map registry", () => {
   });
 
   it("loads the corrected Charles Jr. semantic map metadata", () => {
-    const map = loadSemanticMapFromProjectFile("charles_jr_interior_day1");
+    const map = loadSemanticMapFromProjectFile("Charles");
 
-    expect(map.name).toBe("charles_jr_interior_day1");
+    expect(map.name).toBe("Charles");
     expect(map.widthTiles).toBe(18);
     expect(map.heightTiles).toBe(18);
     expect(map.tileSize).toBe(32);
@@ -72,7 +72,7 @@ describe("map registry", () => {
   });
 
   it("classifies Charles Jr. restaurant collision from semantic structures and objects", () => {
-    const map = loadSemanticMapFromProjectFile("charles_jr_interior_day1");
+    const map = loadSemanticMapFromProjectFile("Charles");
     const collision = buildCollisionGrid(map);
 
     expect(collision.isSolidTile(0, 0)).toBe(true); // exterior wall
@@ -91,22 +91,22 @@ describe("map registry", () => {
 
   it("uses the unmodified corrected Charles Jr. map file identity", () => {
     const raw = JSON.parse(
-      readFileSync(resolve(process.cwd(), "charles_jr_interior_day1.semantic_tilemap.json"), "utf8")
+      readFileSync(resolve(process.cwd(), "Charles.json"), "utf8")
     ) as { mapId?: string; mapName?: string; displayName?: string };
 
-    expect(raw.mapId).toBe("charles_jr_interior_day1");
-    expect(raw.mapName).toBe("charles_jr_interior_day1");
-    expect(raw.displayName).toBe("Charles Jr. Interior");
+    expect(raw.mapId).toBe("Charles");
+    expect(raw.mapName).toBe("Charles");
+    expect(raw.displayName).toBe("Charles");
   });
 
   it("uses the reviewed main neighborhood hub map file identity", () => {
     const raw = JSON.parse(
-      readFileSync(resolve(process.cwd(), "main_neighborhood_hub_day1.semantic_tilemap.json"), "utf8")
+      readFileSync(resolve(process.cwd(), "Overworld.json"), "utf8")
     ) as { mapId?: string; mapName?: string; displayName?: string; width?: number; height?: number; gameTileSizePx?: number };
 
-    expect(raw.mapId).toBe("main_neighborhood_hub_day1");
-    expect(raw.mapName).toBe("main_neighborhood_hub_day1");
-    expect(raw.displayName).toBe("Main Neighborhood Hub");
+    expect(raw.mapId).toBe("Overworld");
+    expect(raw.mapName).toBe("Overworld");
+    expect(raw.displayName).toBe("Overworld");
     expect(raw.width).toBe(42);
     expect(raw.height).toBe(30);
     expect(raw.gameTileSizePx).toBe(32);
