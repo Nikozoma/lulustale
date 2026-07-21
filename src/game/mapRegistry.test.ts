@@ -6,109 +6,86 @@ import { loadSemanticMapFromProjectFile } from "./mapRegistryNode";
 import { buildCollisionGrid, findMarkerPositions } from "./world";
 
 describe("map registry", () => {
-  it("contains home, overworld, and Charles Jr. map specs", () => {
-    expect(Object.keys(MAP_REGISTRY).sort()).toEqual([
-      "Charles",
-      "Home",
-      "Overworld"
-    ]);
+  it("contains the three active map specs", () => {
+    expect(Object.keys(MAP_REGISTRY).sort()).toEqual(["Charles", "Home", "Overworld"]);
     expect(getMapSpec("Home").fileName).toBe("Home.json");
-    expect(getMapSpec("Overworld").fileName).toBe(
-      "Overworld.json"
-    );
-    expect(getMapSpec("Charles").fileName).toBe(
-      "Charles.json"
-    );
+    expect(getMapSpec("Overworld").fileName).toBe("Overworld.json");
+    expect(getMapSpec("Charles").fileName).toBe("Charles.json");
   });
 
-  it("loads the reviewed main neighborhood hub semantic map metadata", () => {
+  it("loads the approved 96x68 Overworld metadata and transitions", () => {
     const map = loadSemanticMapFromProjectFile("Overworld");
 
     expect(map.name).toBe("Overworld");
-    expect(map.widthTiles).toBe(42);
-    expect(map.heightTiles).toBe(30);
+    expect(map.widthTiles).toBe(96);
+    expect(map.heightTiles).toBe(68);
     expect(map.tileSize).toBe(32);
-    expect(map.worldWidth).toBe(1344);
-    expect(map.worldHeight).toBe(960);
-    expect(findMarkerPositions(map, "player_spawn")).toEqual([{ x: 1104, y: 688, tileX: 34, tileY: 21 }]);
-    expect(findMarkerPositions(map, "transition_to_charles_jr")).toEqual([
-      { x: 496, y: 656, tileX: 15, tileY: 20 }
-    ]);
+    expect(map.worldWidth).toBe(3072);
+    expect(map.worldHeight).toBe(2176);
+    expect(findMarkerPositions(map, "player_spawn")).toEqual([{ x: 2160, y: 1328, tileX: 67, tileY: 41 }]);
+    expect(findMarkerPositions(map, "transition_to_home")).toEqual([{ x: 2160, y: 1264, tileX: 67, tileY: 39 }]);
+    expect(findMarkerPositions(map, "transition_to_charles_jr")).toEqual([{ x: 944, y: 1328, tileX: 29, tileY: 41 }]);
   });
 
-  it("classifies main neighborhood hub collision from outdoor semantic IDs", () => {
-    const map = loadSemanticMapFromProjectFile("Overworld");
-    const collision = buildCollisionGrid(map);
+  it("classifies current Overworld collision from semantic IDs", () => {
+    const collision = buildCollisionGrid(loadSemanticMapFromProjectFile("Overworld"));
 
-    expect(collision.isSolidTile(0, 0)).toBe(false); // street
-    expect(collision.isSolidTile(4, 0)).toBe(false); // sidewalk
-    expect(collision.isSolidTile(7, 7)).toBe(false); // parking_lot
-    expect(collision.isSolidTile(5, 2)).toBe(false); // crosswalk
-    expect(collision.isSolidTile(6, 9)).toBe(true); // grass plus tree object
-    expect(collision.isSolidTile(7, 8)).toBe(false); // parking_lot without object
-    expect(collision.isSolidTile(22, 8)).toBe(false); // grass
-
-    expect(collision.isSolidTile(14, 10)).toBe(true); // charles_jr_building
-    expect(collision.isSolidTile(28, 16)).toBe(true); // player_apartment_building
-    expect(collision.isSolidTile(28, 9)).toBe(true); // apartment_building
-    expect(collision.isSolidTile(36, 19)).toBe(true); // bush
-    expect(collision.isSolidTile(27, 9)).toBe(true); // tree
-
-    expect(collision.isSolidTile(15, 19)).toBe(false); // Charles Jr entrance_exit/door marker
-    expect(collision.isSolidTile(35, 20)).toBe(false); // home entrance_exit/player door
-    expect(collision.isSolidTile(36, 20)).toBe(false); // transition_to_home marker only
+    expect(collision.isSolidTile(4, 0)).toBe(false); // street
+    expect(collision.isSolidTile(0, 0)).toBe(false); // sidewalk
+    expect(collision.isSolidTile(19, 15)).toBe(false); // parking lot
+    expect(collision.isSolidTile(7, 7)).toBe(false); // crosswalk
+    expect(collision.isSolidTile(15, 13)).toBe(true); // tree 2x2 region
+    expect(collision.isSolidTile(17, 3)).toBe(true); // completed top-left tree pass
+    expect(collision.isSolidTile(85, 3)).toBe(true); // completed top-right tree pass
+    expect(collision.isSolidTile(3, 63)).toBe(true); // completed bottom-left tree pass
+    expect(collision.isSolidTile(53, 13)).toBe(true); // bush
+    expect(collision.isSolidTile(25, 21)).toBe(false); // Charles Jr. upper walk-behind rows
+    expect(collision.isSolidTile(25, 25)).toBe(true); // Charles Jr. lower building remains solid
+    expect(collision.isSolidTile(53, 29)).toBe(false); // Lulu apartment upper walk-behind rows
+    expect(collision.isSolidTile(53, 33)).toBe(true); // Lulu apartment lower building remains solid
+    expect(collision.isSolidTile(29, 41)).toBe(false); // Charles transition
+    expect(collision.isSolidTile(67, 39)).toBe(false); // Home transition
   });
 
-  it("loads the corrected Charles Jr. semantic map metadata", () => {
+  it("loads the approved 39x33 Charles Jr. metadata", () => {
     const map = loadSemanticMapFromProjectFile("Charles");
 
     expect(map.name).toBe("Charles");
-    expect(map.widthTiles).toBe(18);
-    expect(map.heightTiles).toBe(18);
+    expect(map.widthTiles).toBe(39);
+    expect(map.heightTiles).toBe(33);
     expect(map.tileSize).toBe(32);
-    expect(map.worldWidth).toBe(576);
-    expect(map.worldHeight).toBe(576);
-    expect(findMarkerPositions(map, "player_spawn")).toEqual([{ x: 80, y: 336, tileX: 2, tileY: 10 }]);
+    expect(map.worldWidth).toBe(1248);
+    expect(map.worldHeight).toBe(1056);
+    expect(findMarkerPositions(map, "player_spawn")).toEqual([{ x: 592, y: 944, tileX: 18, tileY: 29 }]);
+    expect(findMarkerPositions(map, "order_interaction")).toEqual([{ x: 592, y: 336, tileX: 18, tileY: 10 }]);
   });
 
-  it("classifies Charles Jr. restaurant collision from semantic structures and objects", () => {
-    const map = loadSemanticMapFromProjectFile("Charles");
-    const collision = buildCollisionGrid(map);
+  it("classifies current Charles Jr. collision from semantic IDs", () => {
+    const collision = buildCollisionGrid(loadSemanticMapFromProjectFile("Charles"));
 
     expect(collision.isSolidTile(0, 0)).toBe(true); // exterior wall
-    expect(collision.isSolidTile(0, 16)).toBe(true); // no floor outside shell
-    expect(collision.isSolidTile(1, 1)).toBe(true); // booth seat
-    expect(collision.isSolidTile(4, 4)).toBe(true); // dining table
-    expect(collision.isSolidTile(9, 14)).toBe(true); // cashier counter
-
-    expect(collision.isSolidTile(11, 4)).toBe(false); // entrance_exit structure remains passable
-    expect(collision.isSolidTile(1, 10)).toBe(false); // entrance_exit marker remains passable
-    expect(collision.isSolidTile(2, 10)).toBe(false); // player_spawn marker only
-    expect(collision.isSolidTile(9, 13)).toBe(false); // order_interaction marker only
-    expect(collision.isSolidTile(6, 6)).toBe(false); // npc_spawn marker only
-    expect(collision.isSolidTile(9, 15)).toBe(true); // cashier_spawn sits on an exterior_wall tile in the source map
+    expect(collision.isSolidTile(1, 5)).toBe(true); // booth seat
+    expect(collision.isSolidTile(7, 6)).toBe(true); // cashier counter
+    expect(collision.isSolidTile(10, 11)).toBe(true); // dining table
+    expect(collision.isSolidTile(18, 10)).toBe(false); // order interaction
+    expect(collision.isSolidTile(18, 29)).toBe(false); // player spawn
+    expect(collision.isSolidTile(18, 30)).toBe(false); // entrance/exit
   });
 
-  it("uses the unmodified corrected Charles Jr. map file identity", () => {
-    const raw = JSON.parse(
-      readFileSync(resolve(process.cwd(), "Charles.json"), "utf8")
-    ) as { mapId?: string; mapName?: string; displayName?: string };
+  it.each([
+    ["Home", 28, 43],
+    ["Charles", 39, 33],
+    ["Overworld", 96, 68]
+  ] as const)("keeps %s map identity and current dimensions", (id, width, height) => {
+    const raw = JSON.parse(readFileSync(resolve(process.cwd(), `${id}.json`), "utf8")) as {
+      mapId?: string;
+      mapName?: string;
+      displayName?: string;
+      width?: number;
+      height?: number;
+      gameTileSizePx?: number;
+    };
 
-    expect(raw.mapId).toBe("Charles");
-    expect(raw.mapName).toBe("Charles");
-    expect(raw.displayName).toBe("Charles");
-  });
-
-  it("uses the reviewed main neighborhood hub map file identity", () => {
-    const raw = JSON.parse(
-      readFileSync(resolve(process.cwd(), "Overworld.json"), "utf8")
-    ) as { mapId?: string; mapName?: string; displayName?: string; width?: number; height?: number; gameTileSizePx?: number };
-
-    expect(raw.mapId).toBe("Overworld");
-    expect(raw.mapName).toBe("Overworld");
-    expect(raw.displayName).toBe("Overworld");
-    expect(raw.width).toBe(42);
-    expect(raw.height).toBe(30);
-    expect(raw.gameTileSizePx).toBe(32);
+    expect(raw).toMatchObject({ mapId: id, mapName: id, displayName: id, width, height, gameTileSizePx: 32 });
   });
 });

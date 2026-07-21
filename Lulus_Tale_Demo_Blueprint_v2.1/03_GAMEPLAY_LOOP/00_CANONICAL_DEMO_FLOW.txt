@@ -30,17 +30,18 @@ AFTER HOME FOUNDATION SUCCEEDS — DEFERRED DAYTIME EXPANSION
 23. Player tracks bird.
 24. Lulu recovers fries.
 25. Lulu returns home.
-26. Lulu goes to bed.
-27. Forced night hook begins.
+26. Lulu uses the bed.
+27. Player chooses either Sleep Until Next Day or Stay Up Into Night.
 
-PASS 2 NIGHT EXTENSION — DEFERRED
-28. Lulu wakes to window pecking.
-29. Lulu investigates window.
-30. Lulu goes outside.
-31. Lulu finds shiny sword in bush.
-32. Lulu confronts bird gang.
-33. Night perception/animal understanding introduced.
-34. Sword battle.
-35. Win path returns to bed manually.
-36. Loss path wakes Lulu on Day 2.
-37. Demo ends at Day 2 wake-up.
+PASS 2 NIGHT EXTENSION — DEFERRED, PLAYER-OPT-IN
+28. If the player selected Stay Up Into Night, the night hook begins without advancing the day.
+29. Lulu hears window pecking.
+30. Lulu investigates window.
+31. Lulu goes outside.
+32. Lulu finds shiny sword in bush.
+33. Lulu confronts bird gang.
+34. Night perception/animal understanding introduced.
+35. Sword battle.
+36. Win path returns to bed manually and advances to Day 2.
+37. Loss handling may return Lulu home, but must not advance time from an automatic world timer.
+38. Demo ends at Day 2 wake-up.

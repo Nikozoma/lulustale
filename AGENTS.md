@@ -134,6 +134,18 @@ Maintain:
 
 Do not break mobile compatibility.
 
+## Day / Night Visual Rules
+
+* Day and night are manual bed-driven phases; never add a real-time phase clock.
+* Home.json, Charles.json, and Overworld.json remain the shared semantic sources
+  for both phases.
+* Day visuals use `*.visual.json`; night visuals use `*.night.visual.json`.
+* A dedicated night visual must be selected when the game phase is night.
+* Do not apply the generic night tint on top of a dedicated night visual.
+* Preserve both daytime and nighttime Overworld building/tree foreground depth.
+* Visual phase changes must not duplicate or alter semantic collision, markers,
+  transitions, or interactions.
+
 Do not add desktop-facing tutorial text or desktop-control instructions to normal player-facing UI unless explicitly requested.
 
 Desktop keyboard controls may exist silently for development/testing, but the game should present itself as mobile-first.

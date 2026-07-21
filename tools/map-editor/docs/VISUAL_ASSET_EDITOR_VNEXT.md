@@ -15,8 +15,8 @@ Tile Asset Editor mode edits visual placements only.
 Visual placements are stored in companion files next to the semantic map files:
 
 ```text
-home_interior_day1.semantic_tilemap.json
-home_interior_day1.visual.json
+Home.json
+Home.visual.json
 ```
 
 Format:
@@ -25,10 +25,10 @@ Format:
 {
   "format": "lulus_visual_placements_v1",
   "version": "1.0",
-  "mapFile": "home_interior_day1.semantic_tilemap.json",
-  "mapId": "home_interior_day1",
+  "mapFile": "Home.json",
+  "mapId": "Home",
   "width": 28,
-  "height": 40,
+  "height": 43,
   "gameTileSizePx": 32,
   "visualLayerOrder": ["ground", "structures", "objects", "foreground"],
   "placements": []

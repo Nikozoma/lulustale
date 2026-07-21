@@ -1,7 +1,15 @@
 CHARLES JR INTERIOR LAYOUT RULES
 
-Reference:
-03_charles_jr_layout.png
+Sources of truth:
+- Charles.json
+- Charles.visual.json
+- public/assets/maps/charles/charles_interior_39x33.png
+
+Map scale:
+- 39 tiles wide.
+- 33 tiles tall.
+- 32 game-world pixels per tile.
+- 1248 x 1056 world pixels total.
 
 Purpose:
 Supports the Day 1 fries errand.
@@ -25,7 +33,8 @@ Gameplay:
 2. Objective: Get fries.
 3. Player walks near cashier counter.
 4. Player taps cashier/order point.
-5. Dialogue plays using Next-button-only dialogue.
+5. Dialogue uses the current dialogue framework; future choices and conditions
+   follow Lulus_Tale_FEATURE_IMPLEMENTATION_BLUEPRINT.txt.
 6. Fries are added as key item/flag.
 7. Objective updates to Head home.
 8. Player exits to overworld.

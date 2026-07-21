@@ -10,10 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, '..', '..');
 const EDITOR_ROOT = __dirname;
-const BACKUP_DIR = join(EDITOR_ROOT, 'backups');
+const BACKUP_DIR = join(PROJECT_ROOT, 'tools', 'backups');
 const REPORT_DIR = join(EDITOR_ROOT, 'reports');
 const DEFAULT_PORT = Number(process.env.LULUS_MAP_EDITOR_PORT || 5187);
-const EDITOR_VERSION = '1.3-vnext';
+const EDITOR_VERSION = '1.6-view-asset-usability';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -31,6 +31,26 @@ const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const SKIP_DIRS = new Set(['.git', '.codex', 'node_modules', 'tools', 'dist', 'backups', 'reports']);
 const SEMANTIC_LAYERS = ['ground', 'structures', 'objects', 'markers'];
 const VISUAL_LAYERS = ['ground', 'structures', 'objects', 'foreground'];
+
+const CANONICAL_MAP_FILES = ['Home.json', 'Charles.json', 'Overworld.json'];
+const CANONICAL_MAP_BY_FILE = new Map(CANONICAL_MAP_FILES.map((file) => [file, file.replace(/\.json$/i, '')]));
+const LEGACY_MAP_NAME_TO_CANONICAL = new Map([
+  ['home_interior_day1', 'Home'],
+  ['charles_jr_interior_day1', 'Charles'],
+  ['main_neighborhood_hub_day1', 'Overworld'],
+  ['main_neighborhood_hub', 'Overworld'],
+  ['World', 'Overworld'],
+  ["Lulu's Home Interior", 'Home'],
+  ['Charles Jr. Interior', 'Charles'],
+  ['Main Neighborhood Hub', 'Overworld']
+]);
+const LEGACY_FILE_TO_CANONICAL = new Map([
+  ['home_interior_day1.semantic_tilemap.json', 'Home'],
+  ['charles_jr_interior_day1.semantic_tilemap.json', 'Charles'],
+  ['main_neighborhood_hub_day1.semantic_tilemap.json', 'Overworld'],
+  ['main_neighborhood_hub.semantic_tilemap.json', 'Overworld'],
+  ['World.json', 'Overworld']
+]);
 
 function sendJson(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -64,18 +84,38 @@ function safeProjectRelativePath(input) {
 function safeMapFileName(fileName) {
   const safe = basename(String(fileName || ''));
   if (!safe || safe !== String(fileName || '')) throw new Error('Invalid map filename. Root-level map files only.');
-  if (!(safe.endsWith('.semantic_tilemap.json') || ['Home.json', 'Charles.json', 'Overworld.json'].includes(safe))) {
-    throw new Error('Invalid map filename. Expected *.semantic_tilemap.json, Home.json, Charles.json, or Overworld.json.');
+  if (!(safe.endsWith('.semantic_tilemap.json') || CANONICAL_MAP_FILES.includes(safe) || safe === 'World.json')) {
+    throw new Error('Invalid map filename. Expected Home.json, Charles.json, Overworld.json, or a manually imported legacy *.semantic_tilemap.json file.');
   }
   return safe;
 }
 function mapPathFromFileName(fileName) {
   return join(PROJECT_ROOT, safeMapFileName(fileName));
 }
+function canonicalNameForFile(fileName) {
+  const safe = basename(String(fileName || ''));
+  return CANONICAL_MAP_BY_FILE.get(safe) || LEGACY_FILE_TO_CANONICAL.get(safe) || null;
+}
+function canonicalNameForMap(map, fileName) {
+  const byFile = canonicalNameForFile(fileName);
+  if (byFile) return byFile;
+  for (const value of [map?.mapId, map?.mapName, map?.displayName]) {
+    if (LEGACY_MAP_NAME_TO_CANONICAL.has(value)) return LEGACY_MAP_NAME_TO_CANONICAL.get(value);
+  }
+  return null;
+}
 function visualFileNameForMap(fileName) {
   const safe = safeMapFileName(fileName);
+  const canonical = CANONICAL_MAP_BY_FILE.get(safe);
+  if (canonical) return `${canonical}.visual.json`;
+  const legacyCanonical = LEGACY_FILE_TO_CANONICAL.get(safe);
   const base = safe.endsWith('.semantic_tilemap.json') ? safe.replace('.semantic_tilemap.json', '') : safe.replace(/\.json$/i, '');
-  return `${base}.visual.json`;
+  if (legacyCanonical) {
+    const suffix = base.replace(/[^A-Za-z0-9_-]+/g, '_');
+    return `LegacyImport_${legacyCanonical}_${suffix}.visual.json`;
+  }
+  const suffix = base.replace(/[^A-Za-z0-9_-]+/g, '_') || 'ImportedMap';
+  return `LegacyImport_${suffix}.visual.json`;
 }
 function visualPathFromMapFileName(fileName) {
   return join(PROJECT_ROOT, visualFileNameForMap(fileName));
@@ -85,6 +125,13 @@ async function fileExists(path) {
 }
 function normalizeMapIdentity(map, fileName) {
   const base = fileName.replace('.semantic_tilemap.json', '').replace(/\.json$/i, '');
+  const canonical = canonicalNameForMap(map, fileName);
+  if (canonical && CANONICAL_MAP_FILES.includes(`${canonical}.json`)) {
+    map.mapId = canonical;
+    map.mapName = canonical;
+    map.displayName = canonical;
+    return;
+  }
   if (!map.mapId && map.mapName) map.mapId = map.mapName;
   if (!map.mapName && map.mapId) map.mapName = map.mapId;
   if (!map.mapId) map.mapId = base;
@@ -177,14 +224,57 @@ function normalizeDrawObject(input) {
     heightTiles: Math.max(0.01, Number(input.heightTiles ?? input.hTiles ?? input.height ?? 1))
   };
 }
-async function createBackupIfExists(fullPath, readableName) {
-  if (!existsSync(fullPath)) return null;
+async function nextNumberedBackupFolder() {
   await mkdir(BACKUP_DIR, { recursive: true });
-  const t = timestamp();
-  const backupFileName = `${readableName}.backup-${t}.json`;
-  const backupPath = join(BACKUP_DIR, backupFileName);
-  await copyFile(fullPath, backupPath);
-  return relative(PROJECT_ROOT, backupPath).replace(/\\/g, '/');
+  const entries = await readdir(BACKUP_DIR, { withFileTypes: true });
+  let maxNumber = 0;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const match = /^backup(\d+)$/.exec(entry.name);
+    if (!match) continue;
+    maxNumber = Math.max(maxNumber, Number(match[1]));
+  }
+  return {
+    number: maxNumber + 1,
+    fullPath: join(BACKUP_DIR, `backup${maxNumber + 1}`)
+  };
+}
+async function createNumberedBackup(filesToBackup) {
+  const existingFiles = [];
+  for (const item of filesToBackup) {
+    if (!item?.fullPath || !item?.fileName) continue;
+    assertInsideProject(item.fullPath);
+    if (!existsSync(item.fullPath)) {
+      if (item.required) throw new Error(`Cannot direct-save because target file does not exist: ${item.fileName}`);
+      continue;
+    }
+    existingFiles.push(item);
+  }
+  if (!existingFiles.length) return null;
+
+  try {
+    const { number, fullPath: backupFolderFullPath } = await nextNumberedBackupFolder();
+    if (existsSync(backupFolderFullPath)) {
+      throw new Error(`Refusing to overwrite existing backup folder: backup${number}`);
+    }
+    await mkdir(backupFolderFullPath, { recursive: false });
+
+    const backedUpFiles = [];
+    for (const item of existingFiles) {
+      const backupPath = join(backupFolderFullPath, basename(item.fileName));
+      if (existsSync(backupPath)) throw new Error(`Refusing to overwrite backup file: ${basename(item.fileName)}`);
+      await copyFile(item.fullPath, backupPath);
+      backedUpFiles.push(relative(PROJECT_ROOT, backupPath).replace(/\\/g, '/'));
+    }
+
+    return {
+      backupNumber: number,
+      backupFolder: relative(PROJECT_ROOT, backupFolderFullPath).replace(/\\/g, '/'),
+      backedUpFiles
+    };
+  } catch (error) {
+    throw new Error(`Backup creation failed. Direct save cancelled. ${error.message}`);
+  }
 }
 async function writeReport(report) {
   await mkdir(REPORT_DIR, { recursive: true });
@@ -196,10 +286,15 @@ async function writeReport(report) {
 }
 async function listMaps() {
   const entries = await readdir(PROJECT_ROOT, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => entry.isFile() && (entry.name.endsWith('.semantic_tilemap.json') || ['Home.json', 'Charles.json', 'Overworld.json'].includes(entry.name)))
-    .map((entry) => entry.name)
-    .sort((a, b) => a.localeCompare(b));
+  const entryNames = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
+  const canonicalFiles = CANONICAL_MAP_FILES.filter((fileName) => entryNames.has(fileName));
+  const useCanonicalOnly = canonicalFiles.length > 0;
+  const files = useCanonicalOnly
+    ? canonicalFiles
+    : entries
+      .filter((entry) => entry.isFile() && (entry.name.endsWith('.semantic_tilemap.json') || entry.name === 'World.json'))
+      .map((entry) => entry.name)
+      .sort((a, b) => a.localeCompare(b));
   const maps = [];
   for (const fileName of files) {
     try {
@@ -211,21 +306,24 @@ async function listMaps() {
       if (existsSync(visualPath)) {
         const visual = JSON.parse(await readFile(visualPath, 'utf8'));
         visualCount = Array.isArray(visual.placements) ? visual.placements.length : 0;
-      } else if (raw.assetLayers) {
-        visualCount = countLegacyAssetLayerCells(raw.assetLayers);
+      } else {
+        visualCount = countLegacyVisualData(raw);
       }
       maps.push({
         fileName,
         visualFileName,
         hasVisualFile: existsSync(visualPath),
-        hasLegacyAssetLayers: Boolean(raw.assetLayers),
+        hasLegacyAssetLayers: Boolean(raw.assetLayers || raw.assetPlacements || raw.visualPlacements || raw.visualLayers),
         visualPlacementCount: visualCount,
         mapId: raw.mapId,
+        mapName: raw.mapName,
         displayName: raw.displayName,
         width: raw.width,
         height: raw.height,
         gameTileSizePx: raw.gameTileSizePx,
-        version: raw.version || null
+        version: raw.version || null,
+        isCurrentActiveMap: CANONICAL_MAP_FILES.includes(fileName),
+        legacyImportSuggestion: CANONICAL_MAP_FILES.includes(fileName) ? null : canonicalNameForMap(raw, fileName)
       });
     } catch (error) {
       maps.push({ fileName, error: error.message });
@@ -233,6 +331,7 @@ async function listMaps() {
   }
   return maps;
 }
+
 function countLegacyAssetLayerCells(assetLayers) {
   let count = 0;
   for (const layer of ['ground', 'structures', 'objects']) {
@@ -335,9 +434,68 @@ async function readVisualForMap(fileName, map) {
     normalizeVisualFile(visual, map, fileName);
     return { visualFileName, visual, source: 'visual-file' };
   }
-  const placements = legacyAssetLayersToVisualPlacements(map, fileName);
+  const placements = legacyVisualDataToVisualPlacements(map, fileName);
   const visual = makeEmptyVisualFile(map, fileName, placements);
-  return { visualFileName, visual, source: placements.length ? 'legacy-assetLayers-migrated-in-memory' : 'new-empty-visual-file' };
+  return { visualFileName, visual, source: placements.length ? 'legacy-visual-data-migrated-in-memory' : 'new-empty-visual-file' };
+}
+function legacyVisualDataToVisualPlacements(map, fileName) {
+  const placements = [];
+  const addPlacement = (raw, fallbackLayer = 'objects', fallbackLabel = 'legacy visual placement') => {
+    if (!raw || typeof raw !== 'object') return;
+    const assetPath = raw.assetPath || raw.imagePath || raw.path || raw.asset?.path;
+    if (!assetPath) return;
+    placements.push(normalizePlacement({
+      id: raw.id || raw.name || `legacy_visual_${placements.length}`,
+      label: raw.label || raw.name || fallbackLabel,
+      assetPath,
+      crop: raw.crop || { x: raw.cropX ?? raw.sx ?? raw.x ?? 0, y: raw.cropY ?? raw.sy ?? raw.y ?? 0, width: raw.cropWidth ?? raw.sw ?? raw.width ?? 32, height: raw.cropHeight ?? raw.sh ?? raw.height ?? 32 },
+      tile: raw.tile || { x: raw.tileX ?? raw.mapTileX ?? raw.mapX ?? 0, y: raw.tileY ?? raw.mapTileY ?? raw.mapY ?? 0 },
+      draw: raw.draw || { widthTiles: raw.widthTiles ?? raw.drawWidthTiles ?? raw.wTiles ?? 1, heightTiles: raw.heightTiles ?? raw.drawHeightTiles ?? raw.hTiles ?? 1 },
+      anchor: raw.anchor || raw.anchorMode || 'top-left',
+      drawLayer: raw.drawLayer || raw.layer || fallbackLayer,
+      order: raw.order ?? raw.z ?? placements.length,
+      notes: raw.notes || 'Migrated in-memory from legacy visual data on map JSON.'
+    }, placements.length));
+  };
+
+  for (const key of ['assetPlacements', 'visualPlacements']) {
+    if (Array.isArray(map[key])) for (const raw of map[key]) addPlacement(raw, 'objects', key);
+  }
+
+  if (map.visualLayers && typeof map.visualLayers === 'object') {
+    for (const [layerName, value] of Object.entries(map.visualLayers)) {
+      const drawLayer = VISUAL_LAYERS.includes(layerName) ? layerName : 'objects';
+      if (!Array.isArray(value)) continue;
+      if (value.every((item) => item && typeof item === 'object' && !Array.isArray(item) && (item.assetPath || item.path || item.imagePath))) {
+        for (const raw of value) addPlacement(raw, drawLayer, `visualLayers.${layerName}`);
+        continue;
+      }
+      for (let y = 0; y < value.length; y += 1) {
+        const row = value[y];
+        if (!Array.isArray(row)) continue;
+        for (let x = 0; x < row.length; x += 1) {
+          const cell = row[x];
+          if (!cell || typeof cell !== 'object') continue;
+          addPlacement({ ...cell, tile: cell.tile || { x, y }, drawLayer }, drawLayer, `visualLayers.${layerName}`);
+        }
+      }
+    }
+  }
+
+  placements.push(...legacyAssetLayersToVisualPlacements(map, fileName));
+  return placements;
+}
+function countLegacyVisualData(map) {
+  let count = countLegacyAssetLayerCells(map.assetLayers);
+  for (const key of ['assetPlacements', 'visualPlacements']) if (Array.isArray(map[key])) count += map[key].length;
+  if (map.visualLayers && typeof map.visualLayers === 'object') {
+    for (const value of Object.values(map.visualLayers)) {
+      if (!Array.isArray(value)) continue;
+      if (value.every((item) => item && typeof item === 'object' && !Array.isArray(item))) count += value.length;
+      else for (const row of value) if (Array.isArray(row)) for (const cell of row) if (cell) count += 1;
+    }
+  }
+  return count;
 }
 function makeEmptyVisualFile(map, fileName, placements = []) {
   normalizeMapIdentity(map, fileName);
@@ -346,7 +504,7 @@ function makeEmptyVisualFile(map, fileName, placements = []) {
     version: '1.0',
     mapFile: fileName,
     mapId: map.mapId,
-    displayName: `${map.displayName || map.mapId} Visuals`,
+    displayName: map.displayName || map.mapId,
     width: Number(map.width),
     height: Number(map.height),
     gameTileSizePx: Number(map.gameTileSizePx || 32),
@@ -358,9 +516,9 @@ function normalizeVisualFile(visual, map, fileName) {
   const base = makeEmptyVisualFile(map, fileName, []);
   visual.format = visual.format || base.format;
   visual.version = visual.version || base.version;
-  visual.mapFile = visual.mapFile || fileName;
-  visual.mapId = visual.mapId || base.mapId;
-  visual.displayName = visual.displayName || base.displayName;
+  visual.mapFile = fileName;
+  visual.mapId = base.mapId;
+  visual.displayName = base.displayName;
   visual.width = Number(visual.width || map.width);
   visual.height = Number(visual.height || map.height);
   visual.gameTileSizePx = Number(visual.gameTileSizePx || map.gameTileSizePx || 32);
@@ -422,7 +580,7 @@ async function handleApi(req, res, url) {
     const fullPath = mapPathFromFileName(fileName);
     if (!existsSync(fullPath)) throw new Error(`Cannot save missing map file: ${fileName}`);
     validateSemanticMap(body.map);
-    const backupFile = await createBackupIfExists(fullPath, fileName.replace(/\.json$/i, ''));
+    const backup = await createNumberedBackup([{ fullPath, fileName, required: true }]);
     const map = body.map;
     normalizeMapIdentity(map, fileName);
     if (!map.format) map.format = 'semantic_tilemap_builder_v2';
@@ -434,13 +592,14 @@ async function handleApi(req, res, url) {
       savedAt: new Date().toISOString(),
       mapEdited: map.mapId || fileName,
       filesChanged: [fileName],
-      backupFilesCreated: backupFile ? [backupFile] : [],
+      backupFolderCreated: backup?.backupFolder || null,
+      backupFilesCreated: backup?.backedUpFiles || [],
       semanticLayersChanged: true,
       visualPlacementsChanged: false,
       validation: { ok: true }
     };
     const reportFile = await writeReport(report);
-    sendJson(res, 200, { ok: true, fileName, backupFile, reportFile, report });
+    sendJson(res, 200, { ok: true, fileName, backupFolder: backup?.backupFolder || null, backedUpFiles: backup?.backedUpFiles || [], reportFile, report });
     return true;
   }
   if (req.method === 'POST' && url.pathname === '/api/visual/save') {
@@ -454,7 +613,7 @@ async function handleApi(req, res, url) {
     const visual = body.visual;
     normalizeVisualFile(visual, map, fileName);
     const validation = await validateVisualFile(visual, map, { strict: false });
-    const backupFile = await createBackupIfExists(visualPath, visualFileName.replace(/\.json$/i, ''));
+    const backup = await createNumberedBackup([{ fullPath: visualPath, fileName: visualFileName, required: false }]);
     await writeFile(visualPath, `${JSON.stringify(visual, null, 2)}\n`, 'utf8');
     const report = {
       type: 'visual-save',
@@ -463,7 +622,8 @@ async function handleApi(req, res, url) {
       mapFile: fileName,
       visualFile: visualFileName,
       filesChanged: [visualFileName],
-      backupFilesCreated: backupFile ? [backupFile] : [],
+      backupFolderCreated: backup?.backupFolder || null,
+      backupFilesCreated: backup?.backedUpFiles || [],
       assetSheetsUsed: validation.assetSheetsUsed,
       visualPlacementCount: validation.placementCount,
       semanticLayersChanged: false,
@@ -471,7 +631,7 @@ async function handleApi(req, res, url) {
       validation: { ok: true, warnings: validation.warnings }
     };
     const reportFile = await writeReport(report);
-    sendJson(res, 200, { ok: true, fileName, visualFileName, backupFile, reportFile, report });
+    sendJson(res, 200, { ok: true, fileName, visualFileName, backupFolder: backup?.backupFolder || null, backedUpFiles: backup?.backedUpFiles || [], reportFile, report });
     return true;
   }
   if (req.method === 'POST' && url.pathname === '/api/visual/validate') {

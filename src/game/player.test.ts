@@ -1,116 +1,78 @@
 import { describe, expect, it } from "vitest";
 import { PLAYER } from "./constants";
+import type { FoundationSemantic, FoundationVisual, RuntimeMap } from "./foundation";
 import { createPlayer, updatePlayer } from "./player";
-import { buildCollisionGrid, normalizeSemanticMap, type RawSemanticMap } from "./world";
 
-const mapFixture: RawSemanticMap = {
-  mapName: "movement_test",
-  width: 4,
-  height: 3,
-  gameTileSizePx: 32,
-  layerOrder: ["ground", "structures", "objects", "markers"],
-  layers: {
-    ground: [
-      ["indoor_floor", "indoor_floor", "indoor_floor", "indoor_floor"],
-      ["indoor_floor", "indoor_floor", "indoor_floor", "indoor_floor"],
-      ["indoor_floor", "indoor_floor", "indoor_floor", "indoor_floor"]
-    ],
-    structures: [
-      [null, null, null, null],
-      [null, null, "interior_wall", null],
-      [null, null, null, null]
-    ],
-    objects: [
-      [null, null, null, null],
-      [null, null, null, null],
-      [null, null, null, null]
-    ],
-    markers: [
-      [null, null, null, null],
-      [null, null, null, null],
-      [null, null, null, null]
-    ]
-  }
-};
-
-function createOpenMapFixture(width: number, height: number): RawSemanticMap {
-  const openRow = Array.from({ length: width }, () => "indoor_floor");
-  const emptyRow = Array.from({ length: width }, () => null);
+function createOpenMap(widthTiles = 20, heightTiles = 20): RuntimeMap {
+  const semantic = {
+    schema_version: "1.0.0",
+    map_id: "home",
+    map_dimensions: {
+      tiles: { width: widthTiles, height: heightTiles },
+      pixels: { width: widthTiles * 32, height: heightTiles * 32 },
+      tile_size_px: 32,
+      world_scale: 1
+    },
+    spawns: [],
+    transitions: [],
+    interactions: [],
+    npc_spawn_markers: []
+  } satisfies FoundationSemantic;
+  const visual = {
+    schema_version: "1.0.0",
+    map_id: "home",
+    variant: "day",
+    canvas: { width_px: widthTiles * 32, height_px: heightTiles * 32, tile_size_px: 32 },
+    base_layer: { asset: "", sha256: "", origin_px: { x: 0, y: 0 }, z_index: 0 },
+    foreground_layers: []
+  } satisfies FoundationVisual;
   return {
-    mapName: "open_movement_test",
-    width,
-    height,
-    gameTileSizePx: 32,
-    layerOrder: ["ground", "structures", "objects", "markers"],
-    layers: {
-      ground: Array.from({ length: height }, () => [...openRow]),
-      structures: Array.from({ length: height }, () => [...emptyRow]),
-      objects: Array.from({ length: height }, () => [...emptyRow]),
-      markers: Array.from({ length: height }, () => [...emptyRow])
-    }
+    id: "home",
+    semantic,
+    collision: Array.from({ length: heightTiles }, () => Array.from({ length: widthTiles }, () => true)),
+    visuals: { day: visual, night: { ...visual, variant: "night" } },
+    width: widthTiles * 32,
+    height: heightTiles * 32,
+    tileSize: 32
   };
 }
 
-describe("player movement", () => {
-  it("moves with normalized input and updates facing", () => {
-    const map = normalizeSemanticMap(mapFixture);
-    const collision = buildCollisionGrid(map);
-    const player = createPlayer({ x: 16, y: 16 });
-
-    updatePlayer(player, { x: 1, y: 0 }, 0.5, map, collision);
-
-    expect(player.position.x).toBeCloseTo(16 + PLAYER.speedPxPerSecond * 0.5);
-    expect(player.position.y).toBeCloseTo(16);
-    expect(player.facing).toBe("right_down");
-    expect(player.isMoving).toBe(true);
+describe("authoritative player movement", () => {
+  it("walks at 96 px/s and runs at 160 px/s", () => {
+    const map = createOpenMap();
+    const walker = createPlayer({ x: 160, y: 160 });
+    const runner = createPlayer({ x: 160, y: 224 });
+    updatePlayer(walker, { x: 1, y: 0 }, false, 1, map);
+    updatePlayer(runner, { x: 1, y: 0 }, true, 1, map);
+    expect(walker.position.x).toBe(160 + PLAYER.walkSpeedPxPerSecond);
+    expect(runner.position.x).toBe(160 + PLAYER.runSpeedPxPerSecond);
   });
 
-  it("moves the same world distance on every cardinal axis", () => {
-    const map = normalizeSemanticMap(createOpenMapFixture(20, 20));
-    const collision = buildCollisionGrid(map);
-    const start = { x: 320, y: 320 };
-    const directions = [
-      { input: { x: 1, y: 0 }, expected: { x: PLAYER.speedPxPerSecond, y: 0 } },
-      { input: { x: -1, y: 0 }, expected: { x: -PLAYER.speedPxPerSecond, y: 0 } },
-      { input: { x: 0, y: -1 }, expected: { x: 0, y: -PLAYER.speedPxPerSecond } },
-      { input: { x: 0, y: 1 }, expected: { x: 0, y: PLAYER.speedPxPerSecond } }
-    ];
-
-    for (const { input, expected } of directions) {
-      const player = createPlayer(start);
-      updatePlayer(player, input, 1, map, collision);
-
-      expect(player.position.x - start.x).toBeCloseTo(expected.x);
-      expect(player.position.y - start.y).toBeCloseTo(expected.y);
-      expect(Math.hypot(player.position.x - start.x, player.position.y - start.y)).toBeCloseTo(
-        PLAYER.speedPxPerSecond
-      );
-    }
+  it("normalizes diagonal movement", () => {
+    const map = createOpenMap();
+    const player = createPlayer({ x: 256, y: 256 });
+    updatePlayer(player, { x: 1, y: -1 }, false, 1, map);
+    expect(Math.hypot(player.position.x - 256, player.position.y - 256)).toBeCloseTo(
+      PLAYER.walkSpeedPxPerSecond
+    );
+    expect(player.facing).toBe("right_up");
   });
 
-  it("normalizes diagonal movement so it is not faster than single-axis movement", () => {
-    const map = normalizeSemanticMap(createOpenMapFixture(20, 20));
-    const collision = buildCollisionGrid(map);
-    const start = { x: 320, y: 320 };
-    const player = createPlayer(start);
-
-    updatePlayer(player, { x: 1, y: -1 }, 1, map, collision);
-
-    const dx = player.position.x - start.x;
-    const dy = player.position.y - start.y;
-    expect(Math.hypot(dx, dy)).toBeCloseTo(PLAYER.speedPxPerSecond);
-    expect(dx).toBeCloseTo(PLAYER.speedPxPerSecond / Math.SQRT2);
-    expect(dy).toBeCloseTo(-PLAYER.speedPxPerSecond / Math.SQRT2);
+  it("uses the 20x12 foot-level collider", () => {
+    const map = createOpenMap(4, 4);
+    map.collision[1][2] = false;
+    const player = createPlayer({ x: 54, y: 64 });
+    updatePlayer(player, { x: 1, y: 0 }, false, 0.5, map);
+    expect(player.position.x).toBeLessThan(64 - PLAYER.collider.width / 2 + 0.01);
+    expect(PLAYER.collider).toEqual({ width: 20, height: 12, centerOffsetY: -6 });
   });
 
-  it("slides along solid semantic tiles instead of entering them", () => {
-    const map = normalizeSemanticMap(mapFixture);
-    const collision = buildCollisionGrid(map);
-    const player = createPlayer({ x: 48, y: 48 });
-
-    updatePlayer(player, { x: 1, y: 0 }, 1, map, collision);
-
-    expect(player.position.x).toBeLessThan(64 - PLAYER.collisionRadiusPx + 0.01);
-    expect(player.position.y).toBe(48);
+  it("locks movement while a reusable action animation is active", () => {
+    const map = createOpenMap();
+    const player = createPlayer({ x: 160, y: 160 });
+    player.action = "pet_dog";
+    updatePlayer(player, { x: 1, y: 0 }, true, 0.5, map);
+    expect(player.position).toEqual({ x: 160, y: 160 });
+    expect(player.actionTime).toBeCloseTo(0.5);
   });
 });

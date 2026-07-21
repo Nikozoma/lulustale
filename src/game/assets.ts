@@ -28,22 +28,14 @@ export type AssetManifest = {
   tiles: Record<string, TileSprite>;
   structures: Record<string, ObjectSprite>;
   objects: Record<string, ObjectSprite>;
-  characters: {
-    cashier: TileSprite;
-  };
   lulu: {
     frameWidth: number;
     frameHeight: number;
-    strips: Record<string, ImageAsset>;
-  };
-  dog: {
-    image: ImageAsset;
-    crop: SpriteCrop;
-  };
-  bird: {
-    image: ImageAsset;
-    frameWidth: number;
-    frameHeight: number;
+    framesPerDirection: number;
+    sheets: {
+      idle: ImageAsset;
+      walk: ImageAsset;
+    };
   };
 };
 
@@ -92,55 +84,16 @@ const modernCity = imageAsset(
   "modern pixel city tileset.png",
   "/assets/city/modern pixel city tileset.png"
 );
-const natureGlobal = imageAsset("natureGlobal", "nature free/global.png", "/assets/nature/global.png");
-const tinyChick = imageAsset(
-  "tinyChick",
-  "Basic animal Asset Pack/Basic Asset Pack/Basic Animal Animations/Tiny Chick/TinyChick.png",
-  "/assets/basic-animal/tiny-chick/TinyChick.png"
+const luluIdle = imageAsset(
+  "luluIdle8Dir",
+  "Lulu normalized idle sprite sheet",
+  "/assets/character-assets/lulu/idle_8dir.png"
 );
-const dogSheet = imageAsset(
-  "dogSheet",
-  "DogMegaPackFree/DogMegaPackFree/Dogs.png",
-  "/assets/dog-mega-pack/Dogs.png"
+const luluWalk = imageAsset(
+  "luluWalk8Dir",
+  "Lulu normalized walk sprite sheet",
+  "/assets/character-assets/lulu/walk_8dir.png"
 );
-const cashierSprite = imageAsset(
-  "cashierCharacter9",
-  "SuperRetroWorld_CharacterPack_Full/sprite_split/character_9/character_9_frame32x32.png",
-  "/assets/super-retro-world/character_9_frame32x32.png"
-);
-
-const luluStrips = {
-  down: imageAsset(
-    "luluWalkDown",
-    "The Female Adventurer - Free/Walk/walk_Down.png",
-    "/assets/female-adventurer/walk/walk_Down.png"
-  ),
-  up: imageAsset(
-    "luluWalkUp",
-    "The Female Adventurer - Free/Walk/walk_Up.png",
-    "/assets/female-adventurer/walk/walk_Up.png"
-  ),
-  left_down: imageAsset(
-    "luluWalkLeftDown",
-    "The Female Adventurer - Free/Walk/walk_Left_Down.png",
-    "/assets/female-adventurer/walk/walk_Left_Down.png"
-  ),
-  left_up: imageAsset(
-    "luluWalkLeftUp",
-    "The Female Adventurer - Free/Walk/walk_Left_Up.png",
-    "/assets/female-adventurer/walk/walk_Left_Up.png"
-  ),
-  right_down: imageAsset(
-    "luluWalkRightDown",
-    "The Female Adventurer - Free/Walk/walk_Right_Down.png",
-    "/assets/female-adventurer/walk/walk_Right_Down.png"
-  ),
-  right_up: imageAsset(
-    "luluWalkRightUp",
-    "The Female Adventurer - Free/Walk/walk_Right_Up.png",
-    "/assets/female-adventurer/walk/walk_Right_Up.png"
-  )
-};
 
 export const ASSET_MANIFEST: AssetManifest = {
   images: [
@@ -153,11 +106,8 @@ export const ASSET_MANIFEST: AssetManifest = {
     modernRoomBuilder,
     cityProps,
     modernCity,
-    natureGlobal,
-    tinyChick,
-    dogSheet,
-    cashierSprite,
-    ...Object.values(luluStrips)
+    luluIdle,
+    luluWalk
   ],
   tiles: {
     home_floor: {
@@ -395,25 +345,14 @@ export const ASSET_MANIFEST: AssetManifest = {
       note: "Outdoor shrub/flower crop from City Prop Tileset update 2.png, clearer than the tiny nature-free decorative crop at overworld scale."
     }
   },
-  characters: {
-    cashier: {
-      imageKey: cashierSprite.key,
-      crop: { x: 32, y: 0, width: 32, height: 32 }
-    }
-  },
   lulu: {
-    frameWidth: 48,
-    frameHeight: 64,
-    strips: luluStrips
-  },
-  dog: {
-    image: dogSheet,
-    crop: { x: 0, y: 128, width: 64, height: 64 }
-  },
-  bird: {
-    image: tinyChick,
-    frameWidth: 16,
-    frameHeight: 16
+    frameWidth: 222,
+    frameHeight: 222,
+    framesPerDirection: 4,
+    sheets: {
+      idle: luluIdle,
+      walk: luluWalk
+    }
   }
 };
 

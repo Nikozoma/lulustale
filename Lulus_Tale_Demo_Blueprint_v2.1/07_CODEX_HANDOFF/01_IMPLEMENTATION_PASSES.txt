@@ -10,7 +10,7 @@ Inspect only / manifest only:
 - exact dog asset source and frame layout,
 - candidate bird asset for later,
 - home/interior tiles and object assets,
-- home_interior_day1.semantic_tilemap.json structure,
+- Home.json structure,
 - blockers/uncertainties.
 
 Output:
@@ -29,7 +29,7 @@ Build only after Pass 0 is approved:
 - Camera.
 - Mobile movement.
 - Real Lulu sprite directional movement.
-- Home map import from home_interior_day1.semantic_tilemap.json.
+- Home map import from Home.json.
 - Real home asset rendering from selected assets.
 - Collision based on semantic map and object solidity.
 - Tap/proximity interaction.
@@ -58,7 +58,7 @@ PASS 3 — Night event and sword battle
 Recommended mode: High.
 
 Build only after Day 1 expansion is stable:
-- forced night wake-up,
+- player-selected night phase from the bed,
 - window investigation,
 - night exterior state,
 - shiny bush sword pickup,

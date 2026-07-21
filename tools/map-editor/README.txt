@@ -1,52 +1,92 @@
-Lulu's Tale Tile Tool v1.3 vNext
-=================================
+Lulu's Tale Tile Tool v1.6
+===========================
 
-Install
--------
-Copy the included tools folder into the root of a Lulu's Tale project folder.
+Launcher
+--------
+Use only:
 
-Expected location:
-LULUsTALE/tools/map-editor/tiletool.bat
+tools/map-editor/tiletool.bat
 
-Run
----
-Double-click tiletool.bat or RUN_MAP_EDITOR.bat.
+RUN_MAP_EDITOR.bat is not included or required going forward.
 
-Main modes
-----------
-1. Tilemap Builder
-   Edits semantic/gameplay layers only:
-   - ground
-   - structures
-   - objects
-   - markers
+Current project naming
+----------------------
+The active project maps are:
 
-2. Tile Asset Editor
-   Edits visual asset placements only.
-   It does not change semantic layers.
+- Home.json
+- Charles.json
+- Overworld.json
 
-Visual storage
---------------
-Visual placements are saved in a separate companion file:
+The active map IDs / map names / display names are:
 
-<map base>.visual.json
+- Home
+- Charles
+- Overworld
 
-Example:
-home_interior_day1.semantic_tilemap.json
-home_interior_day1.visual.json
+Visual companion files
+----------------------
+Visual asset placements are stored separately from semantic gameplay maps:
 
-This keeps the gameplay map JSON clean while allowing human-made visual asset layout work.
+- Home.visual.json
+- Charles.visual.json
+- Overworld.visual.json
 
-Backups and reports
--------------------
-Before overwriting semantic or visual files, the tool creates backups in:
+Semantic files remain responsible for gameplay layers:
 
-tools/map-editor/backups/
+- ground
+- structures
+- objects
+- markers
 
-Each save also creates a report in:
+Visual files store asset crop placements only.
 
-tools/map-editor/reports/
+Backup behavior
+---------------
+Direct saves create project-relative numbered backups in:
 
-Known limitation
+tools/backups
+
+Examples:
+
+- tools/backups/backup1/Home.json
+- tools/backups/backup2/Home.visual.json
+- tools/backups/backup3/Overworld.json
+
+The tool never hardcodes the absolute project folder name.
+
+Map selector behavior
+---------------------
+When Home.json, Charles.json, and/or Overworld.json exist, the active map selector shows those current active maps only.
+
+The selector does not load maps from:
+
+- tools/backups
+- tools/map-editor/reports
+- dist
+- node_modules
+- temporary folders
+
+Legacy files
+------------
+Legacy semantic map files may still be loaded in fallback/import-style situations, but they are not treated as current active maps when the current root map files exist.
+
+Legacy map visual files are written with a LegacyImport_ prefix to avoid creating old active filenames.
+
+Usage
+-----
+1. Copy the tools folder into the Lulu's Tale project root.
+2. Run tools/map-editor/tiletool.bat.
+3. Pick Home, Charles, or Overworld from the map selector.
+4. Use Tilemap Builder mode for semantic/gameplay edits.
+5. Use Tile Asset Editor mode for visual asset placement.
+6. Save semantic or visual changes. The tool creates numbered backups before overwriting existing files.
+
+
+V1.6 QUICK NOTES
 ----------------
-The game renderer may need a Codex integration pass before it uses the new *.visual.json files at runtime.
+- Actual Asset View no longer shows the semantic color overlay.
+- Combined View is where semantic overlay opacity and marker glyph options apply.
+- Added auto asset preview from semantic map so current Codex/game-style assets are visible even before manual visual placements exist.
+- Added Sprite Sheet Select/Pan tools. Use Pan Sheet to left-drag around large sheets.
+- Added Tilemap Builder Move Tile tool for dragging semantic cells within the active layer only.
+- Asset folder dropdown now uses grouped/shortened labels.

@@ -8,7 +8,7 @@ import {
   TUTORIAL_CONTENT
 } from "./tutorial";
 
-const fridgeMarkers = [{ x: 208, y: 336, tileX: 6, tileY: 10 }];
+const fridgeMarkers = [{ x: 752, y: 912, tileX: 23, tileY: 28 }];
 
 describe("tutorial popup state", () => {
   it("opens the movement tutorial before play and dismisses it", () => {
@@ -32,14 +32,14 @@ describe("tutorial popup state", () => {
 
     expect(maybeOpenInteractionTutorial(tutorial, quest, { x: 40, y: 40 }, fridgeMarkers, 42)).toBe(tutorial);
 
-    tutorial = maybeOpenInteractionTutorial(tutorial, quest, { x: 206, y: 334 }, fridgeMarkers, 42);
+    tutorial = maybeOpenInteractionTutorial(tutorial, quest, { x: 750, y: 910 }, fridgeMarkers, 42);
     expect(tutorial.active).toBe("interaction");
     expect(TUTORIAL_CONTENT.interaction.title).toBe("Interact");
-    expect(TUTORIAL_CONTENT.interaction.body).toEqual(["Tap the ! marker to interact."]);
+    expect(TUTORIAL_CONTENT.interaction.body).toEqual(["Tap the ❕ marker to interact."]);
     expect(TUTORIAL_CONTENT.interaction.body.join(" ")).not.toMatch(/desktop|press E|keyboard/i);
 
     tutorial = dismissActiveTutorial(tutorial);
     expect(tutorial.interactionDismissed).toBe(true);
-    expect(maybeOpenInteractionTutorial(tutorial, quest, { x: 206, y: 334 }, fridgeMarkers, 42)).toBe(tutorial);
+    expect(maybeOpenInteractionTutorial(tutorial, quest, { x: 750, y: 910 }, fridgeMarkers, 42)).toBe(tutorial);
   });
 });

@@ -1,7 +1,7 @@
 HOME INTERIOR LAYOUT RULES — v2.1
 
 Source of truth:
-home_interior_day1.semantic_tilemap.json
+Home.json
 
 Purpose:
 The home interior supports the first implementation foundation:
@@ -15,9 +15,9 @@ The home interior supports the first implementation foundation:
 
 Map scale:
 - 28 tiles wide.
-- 40 tiles tall.
+- 43 tiles tall.
 - 32 game-world pixels per tile.
-- 896 x 1280 world pixels total.
+- 896 x 1376 world pixels total.
 
 Semantic layers expected:
 - ground: walkable base floor tiles.
@@ -46,7 +46,7 @@ Gameplay foundation:
 5. Objective: Feed the dog or use the dog bowl.
 6. Dog reacts happily.
 7. Objective points to exit door.
-8. Actual exterior transition remains deferred until the home foundation is approved unless the user explicitly asks otherwise.
+8. The active entrance/exit transition connects Home to the current Overworld.
 
 Implementation rules:
 - Do not improvise home geometry.

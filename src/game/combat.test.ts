@@ -1,35 +1,80 @@
 import { describe, expect, it } from "vitest";
-import { applySwordAttack, areAllBirdsDefeated, spawnBirdGang, updateBirdGang } from "./combat";
+import {
+  attackEnemy,
+  createBirdGangBattle,
+  defend,
+  getBattleExperienceReward,
+  resolveEnemyTurn,
+  useFries
+} from "./combat";
 
-describe("bird gang combat", () => {
-  it("spawns three birds near the nighttime home anchor", () => {
-    const gang = spawnBirdGang({ x: 1168, y: 656 });
+const player = { name: "Lulu", hp: 20, maxHp: 20, attack: 9, defense: 4, speed: 5 };
 
-    expect(gang.enemies).toHaveLength(3);
-    expect(gang.enemies.every((enemy) => !enemy.defeated)).toBe(true);
+describe("turn-based battle system", () => {
+  it("creates the Day 1 bird-gang encounter from the real bird roles", () => {
+    const battle = createBirdGangBattle(player, 1);
+    expect(battle.phase).toBe("player_turn");
+    expect(battle.enemies.map((enemy) => enemy.id)).toEqual([
+      "bird_lookout",
+      "primary_fries_thief",
+      "peck_captain"
+    ]);
+    expect(battle.enemies.every((enemy) => enemy.spritePath.endsWith("_idle.png"))).toBe(true);
+    expect(getBattleExperienceReward(battle)).toBe(18);
   });
 
-  it("defeats birds with short-range facing attacks", () => {
-    let gang = spawnBirdGang({ x: 1168, y: 656 });
+  it("supports player attacks followed by an enemy turn", () => {
+    const battle = createBirdGangBattle(player);
+    const attacked = attackEnemy(battle, "bird_lookout").state;
+    expect(attacked.enemies[0].hp).toBeLessThan(attacked.enemies[0].maxHp);
+    expect(attacked.phase).toBe("enemy_turn");
 
-    gang = applySwordAttack(gang, { x: 1012, y: 590 }, "right_down");
-    expect(gang.enemies[0].defeated).toBe(true);
-    expect(gang.enemies[1].defeated).toBe(false);
-
-    const unchanged = applySwordAttack(gang, { x: 16, y: 16 }, "right_down");
-    expect(unchanged).toBe(gang);
-
-    gang = applySwordAttack(gang, { x: 1060, y: 546 }, "right_down");
-    gang = applySwordAttack(gang, { x: 1108, y: 590 }, "right_down");
-    expect(areAllBirdsDefeated(gang)).toBe(true);
+    const afterEnemies = resolveEnemyTurn(attacked);
+    expect(afterEnemies.phase).toBe("player_turn");
+    expect(afterEnemies.round).toBe(2);
+    expect(afterEnemies.player.hp).toBeLessThan(player.hp);
   });
 
-  it("decays hit flash timing without changing defeated state", () => {
-    let gang = spawnBirdGang({ x: 1168, y: 656 });
-    gang = applySwordAttack(gang, { x: 1012, y: 590 }, "right_down");
-
-    expect(gang.enemies[0].hitFlashSeconds).toBeGreaterThan(0);
-    gang = updateBirdGang(gang, 1);
-    expect(gang.enemies[0]).toMatchObject({ defeated: true, hitFlashSeconds: 0 });
+  it("defend reduces incoming damage", () => {
+    const normal = resolveEnemyTurn(attackEnemy(createBirdGangBattle(player), "bird_lookout").state);
+    const guarded = resolveEnemyTurn(defend(createBirdGangBattle(player)).state);
+    expect(guarded.player.hp).toBeGreaterThan(normal.player.hp);
   });
+
+  it("uses fries as a real combat consumable", () => {
+    const hurtPlayer = { ...player, hp: 8 };
+    const battle = createBirdGangBattle(hurtPlayer, 1);
+    const result = useFries(battle);
+    expect(result.consumedItemId).toBe("fries");
+    expect(result.state.player.hp).toBe(16);
+    expect(result.state.inventory.fries).toBe(0);
+    expect(result.state.phase).toBe("enemy_turn");
+  });
+
+  it("reaches victory after all enemies are defeated", () => {
+    let battle = createBirdGangBattle({ ...player, attack: 99 });
+    for (const id of ["bird_lookout", "primary_fries_thief", "peck_captain"]) {
+      battle = attackEnemy({ ...battle, phase: "player_turn" }, id).state;
+    }
+    expect(battle.phase).toBe("victory");
+  });
+
+  it("supports a defeat state", () => {
+    let battle = createBirdGangBattle({ ...player, hp: 1, maxHp: 20, defense: 0 });
+    battle = defend(battle).state;
+    battle.player.defending = false;
+    battle = resolveEnemyTurn(battle);
+    expect(battle.phase).toBe("defeat");
+    expect(battle.player.hp).toBe(0);
+  });
+  it("keeps the first demo encounter winnable with Lulu's equipped Bush Sword baseline", () => {
+    let battle = createBirdGangBattle(player);
+    for (const id of ["bird_lookout", "primary_fries_thief", "peck_captain", "peck_captain"]) {
+      battle = attackEnemy(battle, id).state;
+      if (battle.phase === "enemy_turn") battle = resolveEnemyTurn(battle);
+    }
+    expect(battle.phase).toBe("victory");
+    expect(battle.player.hp).toBeGreaterThan(0);
+  });
+
 });

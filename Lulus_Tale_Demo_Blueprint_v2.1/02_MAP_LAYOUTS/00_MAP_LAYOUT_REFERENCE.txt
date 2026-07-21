@@ -1,26 +1,48 @@
-MAP LAYOUT REFERENCE — v2.1
+MAP LAYOUT REFERENCE — CURRENT THREE-MAP OVERHAUL
 
-Current source of truth for implementation:
-- home_interior_day1.semantic_tilemap.json
+Active semantic sources of truth:
+- Home.json — 28 x 43 tiles
+- Charles.json — 39 x 33 tiles
+- Overworld.json — 96 x 68 tiles
 
-Legacy map images may exist:
-- 01_overworld_map_layout.png
-- 02_home_layout.png
-- 03_charles_jr_layout.png
-- 00_README_COLOR_KEY_AND_LAYOUT_NOTES.txt
+Active visual companions:
+- Home.visual.json
+- Charles.visual.json
+- Overworld.visual.json
 
-Important:
-- Use the semantic JSON as exact source-of-truth for home foundation layout.
-- Legacy images are visual/topology references only.
-- Do not infer or invent map objects from old images if they are not in the semantic JSON.
-- Do not implement full overworld or Charles Jr. during the current home foundation milestone.
+Active night visual companions:
+- Home.night.visual.json
+- Charles.night.visual.json
+- Overworld.night.visual.json
 
-Current home semantic map:
-- mapName: home_interior_day1
-- width: 28 tiles
-- height: 40 tiles
-- tile size: 32 game-world pixels
-- world size: 896 x 1280 game-world pixels
-- layers: ground, structures, objects, markers
+All maps use 32 game-world pixels per tile and four semantic layers:
+- ground
+- structures
+- objects
+- markers
 
-Tilemap Builder semantic colors/labels are allowed as authoring data. They are not runtime placeholder art. Runtime should use real assets where the semantic map calls for real objects/tiles.
+The visual companions use the approved current full-map reconstructions under
+public/assets/maps/. Semantic JSON remains authoritative for collision,
+walkability, interactions, transitions, and spawns.
+
+The runtime selects the night companions only when the manual phase state is
+night. Both phases intentionally share the same semantic maps so collision,
+markers, transitions, and quest interactions cannot drift apart.
+
+Overworld.visual.json contains six active placements:
+- one current walk-behind base,
+- four upper-building foreground sections,
+- one transparent tree-canopy foreground.
+
+The building foreground sections are opaque normally and fade only when Lulu's
+feet enter their four-row enlarged walk-behind zones. The tree canopy remains last in draw
+order. See MAP_READINESS_REPORT.txt and
+MAP_CHANGE_MANIFEST_building_foreground_pass.txt for the current contract.
+
+Overworld.night.visual.json mirrors the same six-placement structure using the
+supplied night walk-behind base, four night building sections, and night tree
+canopy. Dedicated night visuals replace the old blanket-tint presentation.
+
+The Overworld day/night visuals are 3072 x 2176 pixels and retain normal 32 x
+32 game tiles. Each cell of the approved 48 x 34 semantic source became an
+exact 2 x 2 block, while point markers remain singular at tuned positions.

@@ -8,7 +8,7 @@ INDOOR HOME FOUNDATION ONLY.
 Use this v2.1 demo blueprint as the focused source of truth.
 
 Important companion references:
-- home_interior_day1.semantic_tilemap.json
+- Home.json
 - Asset folders/files in project root
 
 Current core implementation goal:
@@ -30,7 +30,7 @@ Do NOT build yet:
 - Charles Jr.,
 - bird chase/fries recovery,
 - Pass 2/night/sword/combat,
-- full day/night system,
+- real-time day/night clock (the approved design uses manual bed-triggered phases),
 - APK wrapper.
 
 Critical rule:

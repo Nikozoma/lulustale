@@ -16,7 +16,7 @@ Current foundation milestone:
 - Responsive landscape PWA shell and virtual viewport.
 - Mobile dual-zone controls.
 - Player-centered camera.
-- home_interior_day1 semantic map import.
+- Home semantic map import.
 - Real home asset rendering from available asset packs.
 - Correct home collision/walkable layout.
 - Bed, fridge, dog, dog bowl, exit, and core home interactables.
@@ -27,7 +27,7 @@ No placeholders for core demo assets or maps.
 If Codex cannot locate, slice, animate, scale, or implement a required real asset or map, it must stop and report the exact blocker instead of substituting placeholder art, fake map objects, colored boxes, or improvised layouts.
 
 Expected companion files/folders in the Codex project folder:
-- home_interior_day1.semantic_tilemap.json
+- Home.json
 - The Female Adventurer - Free
 - DogMegaPackFree
 - Basic animal Asset Pack
@@ -39,4 +39,4 @@ Expected companion files/folders in the Codex project folder:
 - nature free
 - GuttyKreum_JapaneseCity_Freev1
 
-Legacy visual map layout files may exist, but the semantic JSON is the source of truth for the home foundation.
+The root Home.json, Charles.json, and Overworld.json files are the current semantic sources of truth.

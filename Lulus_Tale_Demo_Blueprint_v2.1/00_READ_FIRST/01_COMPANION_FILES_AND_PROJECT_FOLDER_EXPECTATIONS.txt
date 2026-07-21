@@ -7,7 +7,7 @@ Expected demo blueprint folder:
 Lulus_Tale_Demo_Blueprint_v2.1
 
 Required home map source-of-truth file:
-- home_interior_day1.semantic_tilemap.json
+- Home.json
 
 Expected asset folders/files:
 - Basic animal Asset Pack
@@ -21,21 +21,20 @@ Expected asset folders/files:
 - City Prop Tileset update 2.png
 - modern pixel city tileset.png
 
-Legacy map layout pack files may also exist:
-- 01_overworld_map_layout.png
-- 02_home_layout.png
-- 03_charles_jr_layout.png
-- 00_README_COLOR_KEY_AND_LAYOUT_NOTES.txt
+Current map files:
+- Home.json and Home.visual.json
+- Charles.json and Charles.visual.json
+- Overworld.json and Overworld.visual.json
 
 Important hierarchy:
 1. Direct current user/Codex instructions.
-2. home_interior_day1.semantic_tilemap.json for the home layout.
+2. Home.json for the home layout.
 3. This v2.1 demo blueprint.
-4. Legacy visual map references.
+4. Current approved map assets under public/assets/maps/.
 
 Important:
 - The semantic home JSON is the exact layout source of truth for the indoor home foundation.
-- Legacy map images are visual/topology references only.
+- Current visual companion files and approved map images are the visual sources of truth.
 - Asset folders are required real art sources for core foundation assets.
 - The implementation must not invent the home layout.
 - The implementation must not replace core assets with placeholder boxes/shapes.

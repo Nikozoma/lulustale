@@ -9,7 +9,7 @@ Current foundation required real assets:
 - Fridge.
 - Door/entrance/exit visual.
 - Dog bowl or clear dog feeding object.
-- Core home furniture represented in home_interior_day1.semantic_tilemap.json.
+- Core home furniture represented in Home.json.
 
 Deferred assets:
 - Bird sprite.

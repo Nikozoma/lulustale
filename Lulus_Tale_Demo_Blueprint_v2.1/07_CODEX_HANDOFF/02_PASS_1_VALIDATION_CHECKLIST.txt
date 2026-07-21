@@ -35,10 +35,10 @@ Assets:
 [ ] No core placeholder boxes/shapes are used as runtime assets.
 
 Semantic home map:
-[ ] home_interior_day1.semantic_tilemap.json is loaded.
-[ ] Map dimensions are 28 x 40.
+[ ] Home.json is loaded.
+[ ] Map dimensions are 28 x 43.
 [ ] Tile size is 32.
-[ ] World size is 896 x 1280.
+[ ] World size is 896 x 1376.
 [ ] Layers ground/structures/objects/markers are parsed.
 [ ] Player spawn is read from map markers.
 [ ] Collision follows walls/solid objects.

@@ -1,0 +1,476 @@
+{
+  "$schema": "../../schema/visual-config.schema.json",
+  "schema_version": "1.0.0",
+  "map_id": "overworld",
+  "semantic_geometry": "semantic.json",
+  "canvas": {
+    "width_px": 3072,
+    "height_px": 2176,
+    "tile_size_px": 32,
+    "origin_px": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "art_source": {
+    "package": "Lulus_Tale_Native_Map_Artwork_Full_v1_5.zip",
+    "package_sha256": "877b4ff37ef1dc08d1a283f2a40e03ecd05c2635dbb1e47cfee2aa0a9bda3fb0"
+  },
+  "foreground_layers": [
+    {
+      "id": "building_foreground",
+      "kind": "building_upper",
+      "z_index": 200,
+      "origin_px": {
+        "x": 0,
+        "y": 0
+      },
+      "day_asset": "production/overworld/building_foreground_day.png",
+      "night_asset": "production/overworld/building_foreground_night.png",
+      "day_sha256": "7460bf16bf917bc93c1a6f57839727c2b6f4c4f7753cd16c0ef676504a2f66f3",
+      "night_sha256": "6bb8413852a247080dee447ccc66c66cc2bc5cec8291e7fa900ad8b2e1b01a9f",
+      "alpha_mask_sha256": "98cf147e7af687d55ba5fed76d66aaaa175a61a458261305cf7c51a44658cf43",
+      "night_alpha_mask_sha256": "98cf147e7af687d55ba5fed76d66aaaa175a61a458261305cf7c51a44658cf43",
+      "alpha_geometry_identical_day_night": true,
+      "nonzero_alpha_pixels": 748231,
+      "occlusion_rule": "draw_above_entities_when_entity_feet_are_inside_associated_trigger",
+      "alpha_components": [
+        {
+          "area_px": 207387,
+          "pixel_bbox": {
+            "x": 1668,
+            "y": 1394,
+            "width": 799,
+            "height": 265
+          },
+          "id": "alpha_component_01",
+          "trigger_tile_rect": {
+            "x": 52,
+            "y": 43,
+            "width": 26,
+            "height": 9
+          }
+        },
+        {
+          "area_px": 204950,
+          "pixel_bbox": {
+            "x": 1690,
+            "y": 861,
+            "width": 782,
+            "height": 268
+          },
+          "id": "alpha_component_02",
+          "trigger_tile_rect": {
+            "x": 52,
+            "y": 26,
+            "width": 26,
+            "height": 10
+          }
+        },
+        {
+          "area_px": 201797,
+          "pixel_bbox": {
+            "x": 1666,
+            "y": 448,
+            "width": 802,
+            "height": 257
+          },
+          "id": "alpha_component_03",
+          "trigger_tile_rect": {
+            "x": 52,
+            "y": 14,
+            "width": 26,
+            "height": 9
+          }
+        },
+        {
+          "area_px": 134097,
+          "pixel_bbox": {
+            "x": 812,
+            "y": 600,
+            "width": 258,
+            "height": 525
+          },
+          "id": "alpha_component_04",
+          "trigger_tile_rect": {
+            "x": 25,
+            "y": 18,
+            "width": 9,
+            "height": 18
+          }
+        }
+      ],
+      "asset": "production/overworld/building_foreground_night.png",
+      "sha256": "6bb8413852a247080dee447ccc66c66cc2bc5cec8291e7fa900ad8b2e1b01a9f"
+    },
+    {
+      "id": "tree_canopy_foreground",
+      "kind": "tree_canopy",
+      "z_index": 220,
+      "origin_px": {
+        "x": 0,
+        "y": 0
+      },
+      "day_asset": "production/overworld/tree_canopy_foreground_day.png",
+      "night_asset": "production/overworld/tree_canopy_foreground_night.png",
+      "day_sha256": "612dfd4766dc5cdb8f257d00b57a66b317143d16921404d9e75c363626a200fc",
+      "night_sha256": "478752c86301fbb23c2c7228e9d52e63e3104c2f30c60ff9183833833f732c33",
+      "alpha_mask_sha256": "e75f4ad430d13849c69310ed662d17a062d6a1b7f760aaed614a3a8dfd583215",
+      "night_alpha_mask_sha256": "e75f4ad430d13849c69310ed662d17a062d6a1b7f760aaed614a3a8dfd583215",
+      "alpha_geometry_identical_day_night": true,
+      "nonzero_alpha_pixels": 312170,
+      "occlusion_rule": "draw_above_entities_when_entity_feet_are_inside_associated_trigger",
+      "alpha_components": [
+        {
+          "area_px": 27899,
+          "pixel_bbox": {
+            "x": 1384,
+            "y": 1638,
+            "width": 162,
+            "height": 259
+          },
+          "id": "alpha_component_01",
+          "trigger_tile_rect": {
+            "x": 43,
+            "y": 51,
+            "width": 6,
+            "height": 9
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 479,
+            "y": 248,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_02",
+          "trigger_tile_rect": {
+            "x": 14,
+            "y": 7,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2509,
+            "y": 353,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_03",
+          "trigger_tile_rect": {
+            "x": 78,
+            "y": 11,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2824,
+            "y": 498,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_04",
+          "trigger_tile_rect": {
+            "x": 88,
+            "y": 15,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 30,
+            "y": 558,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_05",
+          "trigger_tile_rect": {
+            "x": 0,
+            "y": 17,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 30,
+            "y": 833,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_06",
+          "trigger_tile_rect": {
+            "x": 0,
+            "y": 26,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 30,
+            "y": 1098,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_07",
+          "trigger_tile_rect": {
+            "x": 0,
+            "y": 34,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2824,
+            "y": 1158,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_08",
+          "trigger_tile_rect": {
+            "x": 88,
+            "y": 36,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 30,
+            "y": 1373,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_09",
+          "trigger_tile_rect": {
+            "x": 0,
+            "y": 42,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 644,
+            "y": 1378,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_10",
+          "trigger_tile_rect": {
+            "x": 20,
+            "y": 43,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 954,
+            "y": 1393,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_11",
+          "trigger_tile_rect": {
+            "x": 29,
+            "y": 43,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 399,
+            "y": 1398,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_12",
+          "trigger_tile_rect": {
+            "x": 12,
+            "y": 43,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2824,
+            "y": 1433,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_13",
+          "trigger_tile_rect": {
+            "x": 88,
+            "y": 44,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2519,
+            "y": 1633,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_14",
+          "trigger_tile_rect": {
+            "x": 78,
+            "y": 51,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 444,
+            "y": 1663,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_15",
+          "trigger_tile_rect": {
+            "x": 13,
+            "y": 51,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2824,
+            "y": 1713,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_16",
+          "trigger_tile_rect": {
+            "x": 88,
+            "y": 53,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 30,
+            "y": 1873,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_17",
+          "trigger_tile_rect": {
+            "x": 0,
+            "y": 58,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2614,
+            "y": 1943,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_18",
+          "trigger_tile_rect": {
+            "x": 81,
+            "y": 60,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 1514,
+            "y": 1948,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_19",
+          "trigger_tile_rect": {
+            "x": 47,
+            "y": 60,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 1224,
+            "y": 1953,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_20",
+          "trigger_tile_rect": {
+            "x": 38,
+            "y": 61,
+            "width": 5,
+            "height": 5
+          }
+        },
+        {
+          "area_px": 14090,
+          "pixel_bbox": {
+            "x": 2824,
+            "y": 1988,
+            "width": 132,
+            "height": 134
+          },
+          "id": "alpha_component_21",
+          "trigger_tile_rect": {
+            "x": 88,
+            "y": 62,
+            "width": 5,
+            "height": 5
+          }
+        }
+      ],
+      "asset": "production/overworld/tree_canopy_foreground_night.png",
+      "sha256": "478752c86301fbb23c2c7228e9d52e63e3104c2f30c60ff9183833833f732c33"
+    }
+  ],
+  "alignment_contract": "Base and foreground layers use canvas origin (0,0); day/night share semantic.json exactly.",
+  "variant": "night",
+  "base_layer": {
+    "asset": "production/overworld/night_base.png",
+    "sha256": "4648d7af43923a935092b32484f17e824ced6d7994d9effb195682c47711872a",
+    "origin_px": {
+      "x": 0,
+      "y": 0
+    },
+    "z_index": 0
+  }
+}

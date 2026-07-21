@@ -72,4 +72,19 @@ describe("asset manifest overworld readability mappings", () => {
       expect.arrayContaining(["topDownFurnitureState2", "topDownSmallItems", "modernInteriors32", "modernRoomBuilder32"])
     );
   });
+
+  it("loads only the normalized supplied Lulu idle and walk sheets for the player", () => {
+    expect(ASSET_MANIFEST.lulu).toMatchObject({
+      frameWidth: 222,
+      frameHeight: 222,
+      framesPerDirection: 4,
+      sheets: {
+        idle: { key: "luluIdle8Dir", href: "/assets/character-assets/lulu/idle_8dir.png" },
+        walk: { key: "luluWalk8Dir", href: "/assets/character-assets/lulu/walk_8dir.png" }
+      }
+    });
+    expect(ASSET_MANIFEST.images.map(({ key }) => key)).not.toEqual(
+      expect.arrayContaining(["dogSheet", "cashierCharacter9", "tinyChick", "luluWalkDown"])
+    );
+  });
 });

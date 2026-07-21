@@ -1,25 +1,29 @@
-export const VIRTUAL_VIEWPORT = {
-  width: 1280,
-  height: 720
-} as const;
-
-export const HOME_RENDER_ZOOM = 3.5;
-export const CHARLES_RENDER_ZOOM = 3.25;
-export const OVERWORLD_RENDER_ZOOM = 2.6;
-export const PLAYER_RENDER_SCALE = 1.25;
-export const PLAYER_SPRITE_ANCHOR_X = 0.5;
-export const PLAYER_SPRITE_ANCHOR_Y = 1;
-export const PLAYER_SPRITE_FOOT_OFFSET_Y = 38;
-export const INTERACTION_RADIUS_PX = 42;
+export const TILE_SIZE_PX = 32;
+export const LOGICAL_CAMERA_HEIGHT = 360;
+export const CORE_SAFE_VIEW = { width: 640, height: 360 } as const;
+export const CHARACTER_CELL = { width: 96, height: 96 } as const;
+export const ROOT_ANCHOR = { x: 48, y: 88 } as const;
+export const INTERACTION_RADIUS_PX = 40;
 
 export const PLAYER = {
-  speedPxPerSecond: 168,
-  collisionRadiusPx: 11,
-  renderScale: PLAYER_RENDER_SCALE,
-  frameWidth: 48,
-  frameHeight: 64,
-  spriteAnchorX: PLAYER_SPRITE_ANCHOR_X,
-  spriteAnchorY: PLAYER_SPRITE_ANCHOR_Y,
-  spriteFootOffsetY: PLAYER_SPRITE_FOOT_OFFSET_Y,
-  animationFrameSeconds: 0.105
+  walkSpeedPxPerSecond: 96,
+  runSpeedPxPerSecond: 160,
+  collider: { width: 20, height: 12, centerOffsetY: -6 },
+  frameWidth: CHARACTER_CELL.width,
+  frameHeight: CHARACTER_CELL.height,
+  rootAnchorX: ROOT_ANCHOR.x,
+  rootAnchorY: ROOT_ANCHOR.y,
+  walkFrameSeconds: 0.125,
+  runFrameSeconds: 0.1,
+  idleFrameSeconds: 0.25
+} as const;
+
+export const BRUTUS = {
+  walkSpeedPxPerSecond: 112,
+  runSpeedPxPerSecond: 184,
+  collider: { width: 24, height: 14, centerOffsetY: -7 },
+  trailingDistancePx: 72,
+  catchUpDistancePx: 160,
+  fallbackDistancePx: 420,
+  waypointSpacingPx: 8
 } as const;

@@ -14,7 +14,7 @@ Required for the home foundation:
 - Tap-to-interact.
 - Dialogue boxes with Next-button-only progression.
 - Proximity-gated interactions.
-- home_interior_day1 semantic map import.
+- Home semantic map import.
 - Real Lulu/player sprite and directional animation.
 - Real home/interior/furniture assets from project asset packs.
 - Real dog asset.
@@ -49,8 +49,8 @@ Do not build yet unless explicitly requested:
 - Pass 2 night content.
 - Full open-world neighborhood.
 - Fred Meyer or 7-Eleven content.
-- Active full 24-hour clock.
-- Day length settings.
+- Real-time or automatically advancing 24-hour clock.
+- Day/night timers or fixed phase-length settings.
 - Full NPC schedules.
 - Full shop economy.
 - Full inventory UI.
@@ -64,3 +64,6 @@ Do not build yet unless explicitly requested:
 
 Design principle:
 Every feature in the foundation should either prove asset loading/scaling, prove the home layout/collision, teach a core interaction, or establish the tone of Lulu's Tale.
+
+Time-system rule:
+Day and night are manual phases controlled from Lulu's bed. Daytime bed use offers "sleep until next day" or "stay up into night"; nighttime bed use advances to the next day. Exploration is never placed on a clock.

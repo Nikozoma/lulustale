@@ -13,7 +13,7 @@ Foundation milestone:
 2. Build a simple mobile-first landscape PWA shell.
 3. Implement the responsive virtual viewport, camera, and touch input.
 4. Implement Lulu with the real player sprite sheet and directional movement animation.
-5. Import and render the home map from home_interior_day1.semantic_tilemap.json.
+5. Import and render the home map from Home.json.
 6. Implement collision, room layout, and interactable zones from the semantic map.
 7. Implement the first tiny home tutorial/quest loop.
 8. Validate on the user's phone before expanding.
@@ -23,9 +23,9 @@ Deferred until foundation succeeds:
 - Charles Jr. interior.
 - Fries errand.
 - Bird theft/chase/fries recovery.
-- Pass 2 forced night sequence.
+- Optional night phase selected from Lulu's bed.
 - Sword pickup and combat.
-- Full day/night system.
+- Real-time or automatically advancing day/night clock.
 - Android APK wrapper.
 
 Full intended demo structure after foundation:
@@ -35,12 +35,12 @@ Full intended demo structure after foundation:
 4. Lulu gets dog food from the fridge.
 5. Lulu feeds the dog / dog bowl.
 6. Lulu leaves home.
-7. Later expansion: Charles Jr. fries errand, bird theft/chase, return home, bed transition, forced night hook, Pass 2 night battle.
+7. Later expansion: Charles Jr. fries errand, bird theft/chase, return home, then the player's bed choice either advances to the next day or begins the optional night phase.
 
 Core demo lesson:
 - Daytime = errands, comedy, interaction, and grounded weirdness.
 - Nighttime = perception shifts, insanity, weapons/action, combat, and surreal consequences.
-- Bed = transition/recovery object for ending the day, resolving the night, and waking on the next day.
+- Bed = the only normal time-advance control: during day choose next day or night; during night sleep to begin the next day.
 
 This is not the full Lulu's Tale master blueprint.
 Use it as the focused implementation reference for the demo release, with the v2.1 foundation restart rules taking priority.

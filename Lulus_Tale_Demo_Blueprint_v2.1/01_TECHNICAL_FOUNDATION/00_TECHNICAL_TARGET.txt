@@ -19,9 +19,9 @@ Rendering:
 - Keep camera zoom/render scaling separate from map tile size.
 
 Core map scale:
-- home_interior_day1 uses 28 x 40 tiles.
+- Home uses 28 x 43 tiles.
 - Tile size is 32 game-world pixels.
-- World size is 896 x 1280 game-world pixels.
+- World size is 896 x 1376 game-world pixels.
 - Mobile landscape viewport may show only a portion of the vertical home map at once.
 
 Architecture guidance:

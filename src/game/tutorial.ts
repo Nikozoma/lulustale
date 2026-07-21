@@ -23,7 +23,7 @@ export const TUTORIAL_CONTENT: Record<TutorialPopupId, TutorialPopupContent> = {
   },
   interaction: {
     title: "Interact",
-    body: ["Tap the ! marker to interact."],
+    body: ["Tap the ❕ marker to interact."],
     buttonLabel: "Got it"
   }
 };

@@ -7,7 +7,7 @@ Inspect the fresh Lulu's Tale project folder and produce an asset/map verificati
 
 Source of truth:
 - Lulus_Tale_Demo_Blueprint_v2.1
-- home_interior_day1.semantic_tilemap.json
+- Home.json
 - Existing asset folders/files in the project root
 
 Scope:
@@ -20,7 +20,7 @@ Critical rules:
 
 Tasks:
 1. Inspect the project folder structure.
-2. Inspect home_interior_day1.semantic_tilemap.json and report:
+2. Inspect Home.json and report:
    - map name,
    - width/height,
    - tile size,

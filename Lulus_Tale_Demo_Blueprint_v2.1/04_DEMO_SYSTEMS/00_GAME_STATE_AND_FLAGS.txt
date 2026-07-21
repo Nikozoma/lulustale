@@ -1,7 +1,7 @@
 GAME STATE AND FLAGS — v2.1
 
 Current home foundation flags:
-- currentMap = home_interior_day1
+- currentMap = Home
 - questId = home_foundation_day1
 - hasDogFood = false
 - fridgeInteracted = false
@@ -22,8 +22,10 @@ Deferred Day 1 flags:
 - birdChaseStarted
 - friesRecovered
 - returnedHomeAfterFries
-- forcedNightEventPending_day1
-- timePhase
+- dayNumber
+- timePhase = day | night
+- nightSelectedAtBed_day1
+- sleepUntilNextDaySelected
 
 Deferred Pass 2 flags:
 - nightWindowInvestigated
@@ -33,3 +35,5 @@ Deferred Pass 2 flags:
 
 Implementation guidance:
 Keep flags simple and explicit. Do not build a full inventory/save system during the foundation pass.
+
+Time never advances from a running clock. Bed interaction is the authoritative phase transition: daytime offers next day or night; nighttime advances to the next day.

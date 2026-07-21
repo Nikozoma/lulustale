@@ -1,105 +1,209 @@
-import type { Facing } from "./player";
-import type { WorldPoint } from "./world";
+export type BattlePhase = "player_turn" | "enemy_turn" | "victory" | "defeat";
 
-export type BirdGangEnemy = {
-  id: number;
-  position: WorldPoint;
-  defeated: boolean;
-  hitFlashSeconds: number;
+export type BattlePlayer = {
+  name: string;
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  defending: boolean;
 };
 
-export type BirdGangRuntimeState = {
-  enemies: BirdGangEnemy[];
+export type BattleEnemy = {
+  id: string;
+  name: string;
+  spritePath: string;
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  experienceReward: number;
 };
 
-export const SWORD_ATTACK_RANGE_PX = 82;
-export const SWORD_ATTACK_CONE_DOT = 0.35;
+export type BattleInventory = {
+  fries: number;
+};
 
-export function createBirdGangRuntimeState(): BirdGangRuntimeState {
-  return { enemies: [] };
-}
+export type TurnBasedBattleState = {
+  id: string;
+  round: number;
+  phase: BattlePhase;
+  player: BattlePlayer;
+  enemies: BattleEnemy[];
+  inventory: BattleInventory;
+  log: string[];
+};
 
-export function spawnBirdGang(anchor: WorldPoint): BirdGangRuntimeState {
+export type BattlePlayerInput = {
+  name: string;
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+};
+
+export type BattleActionResult = {
+  state: TurnBasedBattleState;
+  consumedItemId: "fries" | null;
+};
+
+const BIRD_GANG_ENEMIES: ReadonlyArray<Omit<BattleEnemy, "hp">> = [
+  {
+    id: "bird_lookout",
+    name: "Bird Lookout",
+    spritePath: "/assets/characters/birds/birds/bird_lookout/sheets/bird_lookout_idle.png",
+    maxHp: 7,
+    attack: 3,
+    defense: 1,
+    speed: 7,
+    experienceReward: 4
+  },
+  {
+    id: "primary_fries_thief",
+    name: "Fries Thief",
+    spritePath: "/assets/characters/birds/birds/primary_fries_thief/sheets/primary_fries_thief_idle.png",
+    maxHp: 8,
+    attack: 4,
+    defense: 2,
+    speed: 8,
+    experienceReward: 6
+  },
+  {
+    id: "peck_captain",
+    name: "Peck Captain",
+    spritePath: "/assets/characters/birds/birds/peck_captain/sheets/peck_captain_idle.png",
+    maxHp: 13,
+    attack: 5,
+    defense: 3,
+    speed: 6,
+    experienceReward: 8
+  }
+];
+
+export function createBirdGangBattle(player: BattlePlayerInput, friesCount = 0): TurnBasedBattleState {
   return {
-    enemies: [
-      { id: 1, position: { x: anchor.x - 112, y: anchor.y - 44 }, defeated: false, hitFlashSeconds: 0 },
-      { id: 2, position: { x: anchor.x - 64, y: anchor.y - 88 }, defeated: false, hitFlashSeconds: 0 },
-      { id: 3, position: { x: anchor.x - 16, y: anchor.y - 44 }, defeated: false, hitFlashSeconds: 0 }
-    ]
+    id: "bird_gang_day1",
+    round: 1,
+    phase: "player_turn",
+    player: {
+      ...player,
+      hp: Math.max(1, Math.min(player.maxHp, player.hp)),
+      defending: false
+    },
+    enemies: BIRD_GANG_ENEMIES.map((enemy) => ({ ...enemy, hp: enemy.maxHp })),
+    inventory: { fries: Math.max(0, friesCount) },
+    log: ["The bird gang blocks Lulu's path.", "Lulu's turn."]
   };
 }
 
-export function applySwordAttack(
-  state: BirdGangRuntimeState,
-  playerPosition: WorldPoint,
-  facing: Facing
-): BirdGangRuntimeState {
-  const attackDirection = facingToVector(facing);
-  let hitEnemyId: number | null = null;
+export function attackEnemy(state: TurnBasedBattleState, enemyId: string): BattleActionResult {
+  if (state.phase !== "player_turn") return unchanged(state);
+  const target = state.enemies.find((enemy) => enemy.id === enemyId && enemy.hp > 0);
+  if (!target) return unchanged(state);
 
-  for (const enemy of state.enemies) {
-    if (enemy.defeated) {
-      continue;
-    }
+  const damage = calculateDamage(state.player.attack, target.defense);
+  const enemies = state.enemies.map((enemy) =>
+    enemy.id === enemyId ? { ...enemy, hp: Math.max(0, enemy.hp - damage) } : enemy
+  );
+  const defeated = enemies.find((enemy) => enemy.id === enemyId)?.hp === 0;
+  const log = appendLog(
+    state.log,
+    `Lulu attacks ${target.name} for ${damage} damage.${defeated ? ` ${target.name} is defeated.` : ""}`
+  );
 
-    const toEnemy = {
-      x: enemy.position.x - playerPosition.x,
-      y: enemy.position.y - playerPosition.y
+  if (enemies.every((enemy) => enemy.hp <= 0)) {
+    return {
+      state: { ...state, enemies, phase: "victory", player: { ...state.player, defending: false }, log: appendLog(log, "Victory!") },
+      consumedItemId: null
     };
-    const distance = Math.hypot(toEnemy.x, toEnemy.y);
-    if (distance > SWORD_ATTACK_RANGE_PX || distance < 0.001) {
-      continue;
-    }
-
-    const dot = (toEnemy.x / distance) * attackDirection.x + (toEnemy.y / distance) * attackDirection.y;
-    if (dot >= SWORD_ATTACK_CONE_DOT) {
-      hitEnemyId = enemy.id;
-      break;
-    }
-  }
-
-  if (hitEnemyId === null) {
-    return state;
   }
 
   return {
-    enemies: state.enemies.map((enemy) =>
-      enemy.id === hitEnemyId ? { ...enemy, defeated: true, hitFlashSeconds: 0.16 } : enemy
-    )
+    state: { ...state, enemies, phase: "enemy_turn", player: { ...state.player, defending: false }, log },
+    consumedItemId: null
   };
 }
 
-export function updateBirdGang(state: BirdGangRuntimeState, dt: number): BirdGangRuntimeState {
+export function defend(state: TurnBasedBattleState): BattleActionResult {
+  if (state.phase !== "player_turn") return unchanged(state);
   return {
-    enemies: state.enemies.map((enemy) => ({
-      ...enemy,
-      hitFlashSeconds: Math.max(0, enemy.hitFlashSeconds - dt)
-    }))
+    state: {
+      ...state,
+      phase: "enemy_turn",
+      player: { ...state.player, defending: true },
+      log: appendLog(state.log, "Lulu braces for the bird gang's attack.")
+    },
+    consumedItemId: null
   };
 }
 
-export function areAllBirdsDefeated(state: BirdGangRuntimeState): boolean {
-  return state.enemies.length > 0 && state.enemies.every((enemy) => enemy.defeated);
-}
-
-function facingToVector(facing: Facing): WorldPoint {
-  switch (facing) {
-    case "up":
-      return { x: 0, y: -1 };
-    case "down":
-      return { x: 0, y: 1 };
-    case "left_up":
-      return normalized({ x: -1, y: -0.5 });
-    case "left_down":
-      return normalized({ x: -1, y: 0.5 });
-    case "right_up":
-      return normalized({ x: 1, y: -0.5 });
-    case "right_down":
-      return normalized({ x: 1, y: 0.5 });
+export function useFries(state: TurnBasedBattleState): BattleActionResult {
+  if (state.phase !== "player_turn" || state.inventory.fries <= 0 || state.player.hp >= state.player.maxHp) {
+    return unchanged(state);
   }
+  const healed = Math.min(8, state.player.maxHp - state.player.hp);
+  return {
+    state: {
+      ...state,
+      phase: "enemy_turn",
+      player: { ...state.player, hp: state.player.hp + healed, defending: false },
+      inventory: { ...state.inventory, fries: state.inventory.fries - 1 },
+      log: appendLog(state.log, `Lulu eats some surviving fries and restores ${healed} HP.`)
+    },
+    consumedItemId: "fries"
+  };
 }
 
-function normalized(vector: WorldPoint): WorldPoint {
-  const length = Math.hypot(vector.x, vector.y);
-  return { x: vector.x / length, y: vector.y / length };
+export function resolveEnemyTurn(state: TurnBasedBattleState): TurnBasedBattleState {
+  if (state.phase !== "enemy_turn") return state;
+
+  let hp = state.player.hp;
+  let log = state.log;
+  const livingEnemies = state.enemies.filter((enemy) => enemy.hp > 0).sort((a, b) => b.speed - a.speed);
+
+  for (const enemy of livingEnemies) {
+    const rawDamage = calculateDamage(enemy.attack, state.player.defense);
+    const damage = state.player.defending ? Math.max(1, Math.ceil(rawDamage / 2)) : rawDamage;
+    hp = Math.max(0, hp - damage);
+    log = appendLog(log, `${enemy.name} attacks for ${damage} damage.`);
+    if (hp <= 0) {
+      return {
+        ...state,
+        phase: "defeat",
+        player: { ...state.player, hp: 0, defending: false },
+        log: appendLog(log, "Lulu is knocked down.")
+      };
+    }
+  }
+
+  return {
+    ...state,
+    round: state.round + 1,
+    phase: "player_turn",
+    player: { ...state.player, hp, defending: false },
+    log: appendLog(log, `Round ${state.round + 1}. Lulu's turn.`)
+  };
+}
+
+export function getBattleExperienceReward(state: TurnBasedBattleState): number {
+  return state.enemies.reduce((total, enemy) => total + enemy.experienceReward, 0);
+}
+
+export function livingEnemies(state: TurnBasedBattleState): BattleEnemy[] {
+  return state.enemies.filter((enemy) => enemy.hp > 0);
+}
+
+export function calculateDamage(attack: number, defense: number): number {
+  return Math.max(1, Math.round(attack - defense * 0.6));
+}
+
+function unchanged(state: TurnBasedBattleState): BattleActionResult {
+  return { state, consumedItemId: null };
+}
+
+function appendLog(log: readonly string[], entry: string): string[] {
+  return [...log.slice(-7), entry];
 }
