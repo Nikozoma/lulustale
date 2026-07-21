@@ -30,7 +30,16 @@ import {
   type CompanionActionName,
   type CompanionInteractionName
 } from "./game/companion";
-import { BRUTUS, PLAYER } from "./game/constants";
+import {
+  BRUTUS,
+  DEFAULT_PLAYER_SPEED_MULTIPLIER,
+  MAX_PLAYER_SPEED_MULTIPLIER,
+  MIN_PLAYER_SPEED_MULTIPLIER,
+  PLAYER,
+  PLAYER_SPEED_MULTIPLIER_STEP,
+  getPlayerMovementSpeed
+} from "./game/constants";
+import { createDay1ResetSnapshot } from "./game/debugReset";
 import {
   applyQuestTransition,
   winBirdGangBattle,
@@ -97,6 +106,7 @@ import {
 import { pickupItem } from "./game/itemPickup";
 import { getNpcDialogue, type DialogueLine } from "./game/npcDialogue";
 import { createPlayer, updatePlayer, type Facing } from "./game/player";
+import { DEFAULT_QUEST_TRAIL_ENABLED, findQuestTrailPath } from "./game/questTrail";
 import { FoundationRenderer } from "./game/renderer";
 import { applyLogicalViewport, calculateLogicalViewport, type LogicalViewport } from "./game/viewport";
 import type { VisualPhase } from "./game/visual";
@@ -118,8 +128,6 @@ const gate = requireElement<HTMLElement>("#orientation-gate");
 const gateTitle = requireElement<HTMLHeadingElement>("#gate-title");
 const gateCopy = requireElement<HTMLParagraphElement>("#gate-copy");
 const gateButton = requireElement<HTMLButtonElement>("#gate-button");
-const debugToggle = requireElement<HTMLButtonElement>("#debug-toggle");
-const phaseButton = requireElement<HTMLButtonElement>("#phase-button");
 const petButton = requireElement<HTMLButtonElement>("#pet-button");
 const feedButton = requireElement<HTMLButtonElement>("#feed-button");
 const commandButton = requireElement<HTMLButtonElement>("#command-button");
@@ -168,7 +176,7 @@ const INTERACTION_RADIUS = 58;
 const BUSH_TILE = { x: 68, y: 38 }; // Existing real bush east of Home in the locked 96×68 Overworld grid.
 const BIRD_GANG_DESIGN_POINT = { x: 87.5 * 32, y: 48.5 * 32 }; // Nearest open parking position beside the authored point's visible parked car.
 
-type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save";
+type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "debug";
 type ActiveWorldBubble = { position: WorldPoint; text: string; expiresAt: number };
 
 function requireElement<T extends Element>(selector: string): T {
@@ -357,6 +365,9 @@ async function start(): Promise<void> {
   let ambushRunning = false;
   let actorTime = 0;
   let debugEnabled = false;
+  let playerSpeedMultiplier = DEFAULT_PLAYER_SPEED_MULTIPLIER;
+  let questTrailEnabled = DEFAULT_QUEST_TRAIL_ENABLED;
+  let questTrailCache: { key: string; path: WorldPoint[] | null } | null = null;
   let busy = false;
   let storyBusy = false;
   // start() runs only after the landscape/fullscreen gate and Play are complete.
@@ -411,8 +422,6 @@ async function start(): Promise<void> {
     }
   });
 
-  debugToggle.addEventListener("click", () => setDebug(!debugEnabled));
-  phaseButton.addEventListener("click", () => void switchPhaseDebug());
   petButton.addEventListener("click", () => void startInteraction("petting"));
   feedButton.addEventListener("click", () => void startInteraction("feeding"));
   commandButton.addEventListener("click", () => void startInteraction("companion_command"));
@@ -654,7 +663,19 @@ async function start(): Promise<void> {
           <div class="quest-objective-text">${getDemoObjective(quest, activeMap.id)}</div>
           <div class="quest-objective-label">Progress</div>
           <div class="menu-muted">Day ${quest.day} • ${phase === "day" ? "Day Mode" : "Night Mode"}</div>
+        </div>
+        <div class="debug-card" style="margin-top:10px">
+          <div>
+            <strong>Quest Trail</strong>
+            <div class="menu-muted">Show a collision-aware route to the current objective.</div>
+          </div>
+          <button id="quest-trail-toggle" type="button" aria-pressed="${questTrailEnabled}">${questTrailEnabled ? "On" : "Off"}</button>
         </div>`;
+      requireElementFrom<HTMLButtonElement>(menuContent, "#quest-trail-toggle").addEventListener("click", () => {
+        questTrailEnabled = !questTrailEnabled;
+        questTrailCache = null;
+        renderMenu();
+      });
       return;
     }
 
@@ -668,6 +689,44 @@ async function start(): Promise<void> {
           <span class="world-map-marker" style="left:${marker.xPercent}%;top:${marker.yPercent}%" aria-label="Current location"></span>
         </div>
         <div class="map-location-line">Current location: ${currentLocationLabel()}</div>`;
+      return;
+    }
+
+    if (menuPage === "debug") {
+      menuContent.innerHTML = `
+        <h3 class="menu-section-title">Debug</h3>
+        <div class="debug-list">
+          <div class="debug-card">
+            <div><strong>Debug Overlay</strong><div class="menu-muted">Semantic collision and runtime diagnostics.</div></div>
+            <button id="debug-overlay-toggle" type="button" aria-pressed="${debugEnabled}">${debugEnabled ? "On" : "Off"}</button>
+          </div>
+          <div class="debug-card">
+            <div><strong>Day / Night Debug Switch</strong><div class="menu-muted">Current phase: ${phase === "day" ? "Day" : "Night"}</div></div>
+            <button id="debug-phase-switch" type="button">Switch to ${phase === "day" ? "Night" : "Day"}</button>
+          </div>
+          <div class="debug-card debug-speed-card">
+            <div><strong>Player Speed</strong><div id="debug-speed-rates" class="menu-muted">Walk ${getPlayerMovementSpeed(false, playerSpeedMultiplier).toFixed(0)} px/s • Run ${getPlayerMovementSpeed(true, playerSpeedMultiplier).toFixed(0)} px/s</div></div>
+            <label class="debug-speed-control"><output id="debug-speed-value">${playerSpeedMultiplier.toFixed(2)}×</output><input id="debug-speed-input" type="range" min="${MIN_PLAYER_SPEED_MULTIPLIER}" max="${MAX_PLAYER_SPEED_MULTIPLIER}" step="${PLAYER_SPEED_MULTIPLIER_STEP}" value="${playerSpeedMultiplier}" aria-label="Player speed multiplier" /></label>
+          </div>
+          <div class="debug-card">
+            <div><strong>Reset Day 1 Questline</strong><div class="menu-muted">Restore the complete playable demo to its fresh Day 1 state and save immediately.</div></div>
+            <button id="debug-reset-day1" class="danger-action" type="button">Reset Day 1</button>
+          </div>
+        </div>`;
+      requireElementFrom<HTMLButtonElement>(menuContent, "#debug-overlay-toggle").addEventListener("click", () => {
+        setDebug(!debugEnabled);
+        renderMenu();
+      });
+      requireElementFrom<HTMLButtonElement>(menuContent, "#debug-phase-switch").addEventListener("click", () => void switchPhaseDebug());
+      const speedInput = requireElementFrom<HTMLInputElement>(menuContent, "#debug-speed-input");
+      const speedValue = requireElementFrom<HTMLOutputElement>(menuContent, "#debug-speed-value");
+      const speedRates = requireElementFrom<HTMLDivElement>(menuContent, "#debug-speed-rates");
+      speedInput.addEventListener("input", () => {
+        playerSpeedMultiplier = Number(speedInput.value);
+        speedValue.value = `${playerSpeedMultiplier.toFixed(2)}×`;
+        speedRates.textContent = `Walk ${getPlayerMovementSpeed(false, playerSpeedMultiplier).toFixed(0)} px/s • Run ${getPlayerMovementSpeed(true, playerSpeedMultiplier).toFixed(0)} px/s`;
+      });
+      requireElementFrom<HTMLButtonElement>(menuContent, "#debug-reset-day1").addEventListener("click", () => void resetDay1Questline());
       return;
     }
 
@@ -712,6 +771,55 @@ async function start(): Promise<void> {
     }
   }
 
+  async function resetDay1Questline(): Promise<void> {
+    const confirmed = window.confirm(
+      "Reset the complete Day 1 questline? Current Day 1 progress, quest items, battle progress, and phase will be replaced."
+    );
+    if (!confirmed || busy) return;
+
+    busy = true;
+    updateControls();
+    status.textContent = "Resetting Day 1…";
+    try {
+      const home = requireMap(maps, "home");
+      const reset = createDay1ResetSnapshot(home);
+      const visual = await loadMapVisual(home, "day");
+      quest = reset.quest;
+      phase = "day";
+      activeMap = home;
+      activeVisual = visual;
+      player = createPlayer(reset.player.position, reset.player.facing);
+      Object.assign(companion, createCompanion(reset.companion.position, reset.companion.facing));
+      restoreCompanionCommandState(companion, reset.companion);
+      companion.pathHistory = [{ ...companion.position }, { ...player.position }];
+      inventory = reset.inventory.map((entry) => ({ ...entry }));
+      equipment = { ...reset.equipment };
+      playerStatus = { ...reset.status };
+      dayWarningSeen = false;
+      primaryBirdPosition = null;
+      ambushOrigin = null;
+      ambushRunning = false;
+      battleState = null;
+      battleResolving = false;
+      battleMenuMode = "commands";
+      activeWorldBubble = null;
+      worldChatBubble.hidden = true;
+      dialoguePanel.hidden = true;
+      minigamePanel.hidden = true;
+      battlePanel.hidden = true;
+      questTrailCache = null;
+      lastCamera = clampCamera(player.position, { width: activeMap.width, height: activeMap.height }, { width: viewport.width, height: viewport.height });
+      menuOpen = false;
+      menuPanel.hidden = true;
+      persistAutosave();
+      setMessage("Day 1 questline reset and saved.", 3);
+    } finally {
+      busy = false;
+      status.textContent = "";
+      updateHud();
+    }
+  }
+
   function currentLocationLabel(): string {
     if (activeMap.id === "home") return "Home";
     if (activeMap.id === "charles_jr") return "Charles Jr.";
@@ -743,8 +851,6 @@ async function start(): Promise<void> {
 
   function setDebug(enabled: boolean): void {
     debugEnabled = enabled;
-    debugToggle.setAttribute("aria-pressed", String(enabled));
-    phaseButton.hidden = !enabled;
   }
 
   function setMessage(text: string, seconds = 2.4): void {
@@ -781,6 +887,7 @@ async function start(): Promise<void> {
   function getQuestActionTarget(): WorldActionTarget | null {
     const target = getQuestTargetPosition();
     if (!target) return null;
+    if (activeMap.semantic.transitions.some((transition) => samePoint(rectCenter(transition.pixel_rect), target))) return null;
     switch (quest.stage) {
       case "check_fridge":
         return { id: "quest-fridge", label: "Fridge", kind: "use", position: target, priority: 100 };
@@ -1026,6 +1133,14 @@ async function start(): Promise<void> {
 
   async function handleQuestInteraction(): Promise<void> {
     if (storyBusy || busy) return;
+    const target = getQuestTargetPosition();
+    const targetTransition = target
+      ? activeMap.semantic.transitions.find((transition) => samePoint(rectCenter(transition.pixel_rect), target))
+      : null;
+    if (targetTransition && canUseQuestTransition(quest, targetTransition.id)) {
+      await enterMap(targetTransition);
+      return;
+    }
     switch (quest.stage) {
       case "check_fridge":
         quest = takeDogFood(quest);
@@ -1463,11 +1578,12 @@ async function start(): Promise<void> {
   }
 
   async function switchPhaseDebug(): Promise<void> {
-    if (!debugEnabled || busy) return;
+    if (busy) return;
     const next: VisualPhase = phase === "day" ? "night" : "day";
     quest = { ...quest, phase: next };
     await setPhase(next);
     setMessage(`${next === "day" ? "Day" : "Night"} Mode (debug)`);
+    if (menuOpen) renderMenu();
   }
 
   async function enterMap(transition: TransitionDefinition): Promise<void> {
@@ -1507,7 +1623,6 @@ async function start(): Promise<void> {
 
   function updateControls(): void {
     const uiBlocked = busy || storyBusy || menuOpen || Boolean(battleState);
-    phaseButton.disabled = uiBlocked;
     petButton.disabled = uiBlocked || phase === "night";
     feedButton.disabled = uiBlocked || phase === "night";
     commandButton.disabled = uiBlocked || phase === "night";
@@ -1526,10 +1641,8 @@ async function start(): Promise<void> {
     objective.textContent = "";
     questTrackerTitle.textContent = getActiveQuestTitle(quest);
     questTrackerObjective.textContent = currentObjective;
-    phaseButton.textContent = phase === "day" ? "Night" : "Day";
     commandButton.textContent = companion.mode === "follow" ? "Stay" : "Follow";
     status.dataset.map = mapLabel;
-    if (menuOpen) renderMenu();
     updateWorldActionMenu();
     updateControls();
   }
@@ -1547,29 +1660,77 @@ async function start(): Promise<void> {
             ? transitionCenter(activeMap, "transition_overworld_to_charles_jr")
             : null;
       case "order_fries":
-        return interactionCenter(activeMap, "interaction_service_counter");
+        return activeMap.id === "charles_jr"
+          ? interactionCenter(activeMap, "interaction_service_counter")
+          : activeMap.id === "overworld"
+            ? transitionCenter(activeMap, "transition_overworld_to_charles_jr")
+            : transitionCenter(activeMap, "transition_home_to_overworld");
       case "head_home_with_fries":
-        return activeMap.id === "charles_jr" ? transitionCenter(activeMap, "transition_charles_jr_to_overworld") : null;
+        return activeMap.id === "charles_jr"
+          ? transitionCenter(activeMap, "transition_charles_jr_to_overworld")
+          : activeMap.id === "overworld"
+            ? transitionCenter(activeMap, "transition_overworld_to_home")
+            : null;
       case "investigate_bird":
-        return activeMap.id === "overworld" ? primaryBirdPosition : null;
+        return activeMap.id === "overworld"
+          ? primaryBirdPosition
+          : activeMap.id === "home"
+            ? transitionCenter(activeMap, "transition_home_to_overworld")
+            : transitionCenter(activeMap, "transition_charles_jr_to_overworld");
       case "return_home_day":
       case "return_home_night":
-        return activeMap.id === "overworld" ? transitionCenter(activeMap, "transition_overworld_to_home") : null;
+        return activeMap.id === "overworld"
+          ? transitionCenter(activeMap, "transition_overworld_to_home")
+          : activeMap.id === "charles_jr"
+            ? transitionCenter(activeMap, "transition_charles_jr_to_overworld")
+            : null;
       case "choose_day_end":
       case "night_quest_pending":
       case "sleep_after_night":
-        return activeMap.id === "home" ? interactionCenter(activeMap, "interaction_bed") : null;
+        return activeMap.id === "home"
+          ? interactionCenter(activeMap, "interaction_bed")
+          : activeMap.id === "overworld"
+            ? transitionCenter(activeMap, "transition_overworld_to_home")
+            : transitionCenter(activeMap, "transition_charles_jr_to_overworld");
       case "leave_home_night":
         return activeMap.id === "home" ? transitionCenter(activeMap, "transition_home_to_overworld") : null;
       case "meet_night_guide":
-        return activeMap.id === "overworld" ? guidePosition : null;
+        return activeMap.id === "overworld"
+          ? guidePosition
+          : activeMap.id === "home"
+            ? transitionCenter(activeMap, "transition_home_to_overworld")
+            : transitionCenter(activeMap, "transition_charles_jr_to_overworld");
       case "find_bush_sword":
-        return activeMap.id === "overworld" ? bushInteractionPosition : null;
+        return activeMap.id === "overworld"
+          ? bushInteractionPosition
+          : activeMap.id === "home"
+            ? transitionCenter(activeMap, "transition_home_to_overworld")
+            : transitionCenter(activeMap, "transition_charles_jr_to_overworld");
       case "confront_bird_gang":
-        return activeMap.id === "overworld" ? gangCenter : null;
+        return activeMap.id === "overworld"
+          ? gangCenter
+          : activeMap.id === "home"
+            ? transitionCenter(activeMap, "transition_home_to_overworld")
+            : transitionCenter(activeMap, "transition_charles_jr_to_overworld");
       default:
         return null;
     }
+  }
+
+  function getQuestTrail(): WorldPoint[] | null {
+    if (!questTrailEnabled) return null;
+    const target = getQuestTargetPosition();
+    if (!target) return null;
+    const startTileX = Math.floor(player.position.x / activeMap.tileSize);
+    const startTileY = Math.floor(player.position.y / activeMap.tileSize);
+    const key = `${activeMap.id}|${quest.stage}|${startTileX},${startTileY}|${Math.round(target.x / 8)},${Math.round(target.y / 8)}`;
+    if (questTrailCache?.key !== key) {
+      questTrailCache = {
+        key,
+        path: findQuestTrailPath(activeMap, player.position, target, PLAYER.collider)
+      };
+    }
+    return questTrailCache.path ? [{ ...player.position }, ...questTrailCache.path.slice(1)] : null;
   }
 
   function getActors(): WorldActorRenderState[] {
@@ -1633,7 +1794,7 @@ async function start(): Promise<void> {
     }
 
     if (canUseInput()) {
-      updatePlayer(player, input.getMoveVector(), dt, activeMap);
+      updatePlayer(player, input.getMoveVector(), dt, activeMap, playerSpeedMultiplier);
       if (phase === "day") updateCompanion(companion, player, dt, activeMap, characters.interactions);
       const transition = transitionAt(activeMap, player.position);
       if (transition && canUseQuestTransition(quest, transition.id)) void enterMap(transition);
@@ -1677,6 +1838,7 @@ async function start(): Promise<void> {
       inputState: input.getTouchState(),
       debugEnabled,
       debugText: `${activeMap.id} | ${phase} | ${quest.stage} | camera ${lastCamera.x.toFixed(0)},${lastCamera.y.toFixed(0)} | logical ${viewport.width}×360 @${viewport.outputScale}×`,
+      questTrail: getQuestTrail(),
       actors: getActors()
     });
     updateHud();
@@ -1737,6 +1899,10 @@ function rectCenter(rect: PixelRect): WorldPoint {
 
 function midpoint(a: WorldPoint, b: WorldPoint): WorldPoint {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function samePoint(a: WorldPoint, b: WorldPoint): boolean {
+  return Math.abs(a.x - b.x) < 0.001 && Math.abs(a.y - b.y) < 0.001;
 }
 
 function distance(a: WorldPoint, b: WorldPoint): number {

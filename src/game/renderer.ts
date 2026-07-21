@@ -27,6 +27,7 @@ export type FoundationRenderState = {
   inputState: TouchState;
   debugEnabled: boolean;
   debugText: string;
+  questTrail: WorldPoint[] | null;
   actors: WorldActorRenderState[];
 };
 
@@ -57,6 +58,7 @@ export class FoundationRenderer {
     ctx.clip();
     ctx.translate(-camera.x, -camera.y);
     ctx.drawImage(state.visual.base, 0, 0);
+    if (state.questTrail) this.drawQuestTrail(state.questTrail);
 
     const entities: RenderableEntity[] = [];
     if (state.foodPropPosition) {
@@ -87,6 +89,20 @@ export class FoundationRenderer {
     if (state.debugEnabled) {
       this.drawDebugText(state.debugText, state.viewport);
     }
+  }
+
+  private drawQuestTrail(points: WorldPoint[]): void {
+    if (points.length < 2) return;
+    this.ctx.save();
+    this.ctx.strokeStyle = "rgb(38 208 236 / 0.62)";
+    this.ctx.lineWidth = 2;
+    this.ctx.lineCap = "round";
+    this.ctx.lineJoin = "round";
+    this.ctx.beginPath();
+    this.ctx.moveTo(points[0].x, points[0].y);
+    for (const point of points.slice(1)) this.ctx.lineTo(point.x, point.y);
+    this.ctx.stroke();
+    this.ctx.restore();
   }
 
 

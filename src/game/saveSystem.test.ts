@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDemoQuestState } from "./demoQuest";
+import { canUseQuestTransition, createDemoQuestState } from "./demoQuest";
 import { SAVE_SCHEMA_VERSION, createDefaultEquipment, createDefaultStatus } from "./gameState";
 import { parseBackupSave, serializeBackupSave } from "./saveSystem";
 
@@ -49,6 +49,20 @@ describe("backup save format", () => {
 
     const following = savedState({ mode: "follow", commandPose: "lay" });
     expect(parseBackupSave(serializeBackupSave(following)).companion.commandPose).toBeNull();
+  });
+
+  it("preserves unlocked free travel through backup normalization", () => {
+    const state = savedState({ mode: "follow", commandPose: null });
+    state.quest = { ...state.quest, stage: "complete", birdGangDefeated: true };
+    const restored = parseBackupSave(serializeBackupSave(state));
+    for (const transitionId of [
+      "transition_home_to_overworld",
+      "transition_overworld_to_home",
+      "transition_overworld_to_charles_jr",
+      "transition_charles_jr_to_overworld"
+    ]) {
+      expect(canUseQuestTransition(restored.quest, transitionId)).toBe(true);
+    }
   });
 });
 

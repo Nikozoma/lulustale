@@ -1,4 +1,4 @@
-import { PLAYER, WALK_MAX_STRENGTH } from "./constants";
+import { DEFAULT_PLAYER_SPEED_MULTIPLIER, PLAYER, WALK_MAX_STRENGTH, getPlayerMovementSpeed } from "./constants";
 import { canOccupy, type RuntimeMap, type WorldPoint } from "./foundation";
 
 export type Facing = "down" | "left_down" | "left" | "left_up" | "up" | "right_up" | "right" | "right_down";
@@ -29,7 +29,8 @@ export function updatePlayer(
   player: PlayerState,
   inputVector: WorldPoint,
   dt: number,
-  map: RuntimeMap
+  map: RuntimeMap,
+  speedMultiplier = DEFAULT_PLAYER_SPEED_MULTIPLIER
 ): void {
   if (player.action) {
     player.isMoving = false;
@@ -47,7 +48,7 @@ export function updatePlayer(
   }
 
   const running = movement.strength > WALK_MAX_STRENGTH;
-  const speed = running ? PLAYER.runSpeedPxPerSecond : PLAYER.walkSpeedPxPerSecond;
+  const speed = getPlayerMovementSpeed(running, speedMultiplier);
   const distance = speed * dt;
   const nextX = { x: player.position.x + movement.direction.x * distance, y: player.position.y };
   const nextY = { x: player.position.x, y: player.position.y + movement.direction.y * distance };
@@ -62,7 +63,11 @@ export function updatePlayer(
   player.facing = facingFromVector(movement.direction);
   player.isMoving = true;
   player.isRunning = running;
-  player.animationTime += dt;
+  // The approved four-frame locomotion loops were timed against the original
+  // 1.00x movement rates. Scaling animation time with traveled speed preserves
+  // that distance-per-cycle relationship and prevents faster debug rates from
+  // turning into visible foot sliding.
+  player.animationTime += dt * speedMultiplier;
 }
 
 export function facingFromVector(vector: WorldPoint): Facing {

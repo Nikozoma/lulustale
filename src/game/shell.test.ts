@@ -45,6 +45,30 @@ describe("game shell mobile-first UI", () => {
     expect(html).toContain('id="backup-load-input"');
   });
 
+  it("places development controls in a Debug menu page after Save / Load", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    expect(html.indexOf('data-menu-page="debug"')).toBeGreaterThan(html.indexOf('data-menu-page="save"'));
+    expect(html).not.toContain('id="debug-toggle"');
+    expect(html).not.toContain('id="phase-button"');
+    expect(main).toContain('id="debug-overlay-toggle"');
+    expect(main).toContain('id="debug-phase-switch"');
+    expect(main).toContain('id="debug-reset-day1"');
+    expect(main).toContain('id="debug-speed-input"');
+    expect(main).toContain("let debugEnabled = false");
+    expect(main).toContain("let playerSpeedMultiplier = DEFAULT_PLAYER_SPEED_MULTIPLIER");
+    expect(main).toContain("battleState = null");
+    expect(main).toContain("primaryBirdPosition = null");
+    expect(main).toContain("persistAutosave();");
+  });
+
+  it("adds an off-by-default Quest Trail control backed by collision-aware routing", () => {
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    expect(main).toContain('id="quest-trail-toggle"');
+    expect(main).toContain("let questTrailEnabled = DEFAULT_QUEST_TRAIL_ENABLED");
+    expect(main).toContain("findQuestTrailPath(activeMap, player.position, target, PLAYER.collider)");
+  });
+
   it("ships the batch-2 context action menu and overhead bubble shell", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
 

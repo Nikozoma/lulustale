@@ -41,10 +41,10 @@ describe("96x96 Lulu runtime geometry", () => {
   });
 
   it("uses explicit indoor-only Lulu render scales", () => {
-    expect(LULU_RENDER_SCALE_BY_MAP).toEqual({ overworld: 1, home: 1.25, charles_jr: 1.25 });
+    expect(LULU_RENDER_SCALE_BY_MAP).toEqual({ overworld: 1, home: 1.5, charles_jr: 1.5 });
   });
 
-  it.each([1, 1.25])("keeps Lulu's bottom-center root invariant at %sx", (scale) => {
+  it.each([1, 1.5])("keeps Lulu's bottom-center root invariant at %sx", (scale) => {
     const root = { x: 320, y: 240 };
     const box = getPlayerSpriteDrawBox(root, 96, 96, scale, PLAYER.rootAnchorX, PLAYER.rootAnchorY);
     expect(box.x + PLAYER.rootAnchorX * scale).toBe(root.x);

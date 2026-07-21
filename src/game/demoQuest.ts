@@ -158,15 +158,13 @@ export function sleepAfterNight(state: DemoQuestState): DemoQuestState {
 }
 
 export function canUseQuestTransition(state: DemoQuestState, transitionId: string): boolean {
+  if (!isDay1TravelUnlocked(state)) return false;
   switch (transitionId) {
     case "transition_home_to_overworld":
-      return state.stage === "go_to_charles" || state.stage === "leave_home_night";
     case "transition_overworld_to_charles_jr":
-      return state.stage === "go_to_charles";
     case "transition_charles_jr_to_overworld":
-      return state.stage === "head_home_with_fries";
     case "transition_overworld_to_home":
-      return state.stage === "return_home_day" || state.stage === "return_home_night";
+      return true;
     default:
       return false;
   }
@@ -176,16 +174,19 @@ export function applyQuestTransition(state: DemoQuestState, transitionId: string
   if (!canUseQuestTransition(state, transitionId)) return state;
   switch (transitionId) {
     case "transition_overworld_to_charles_jr":
-      return { ...state, stage: "order_fries" };
+      return state.stage === "go_to_charles" ? { ...state, stage: "order_fries" } : state;
     case "transition_charles_jr_to_overworld":
-      return { ...state, stage: "ambush_pending" };
+      return state.stage === "head_home_with_fries" ? { ...state, stage: "ambush_pending" } : state;
     case "transition_overworld_to_home":
-      return state.stage === "return_home_day"
-        ? { ...state, stage: "choose_day_end" }
-        : { ...state, stage: "sleep_after_night" };
+      if (state.stage === "return_home_day") return { ...state, stage: "choose_day_end" };
+      return state.stage === "return_home_night" ? { ...state, stage: "sleep_after_night" } : state;
     case "transition_home_to_overworld":
       return state.stage === "leave_home_night" ? { ...state, stage: "meet_night_guide" } : state;
     default:
       return state;
   }
+}
+
+export function isDay1TravelUnlocked(state: DemoQuestState): boolean {
+  return state.stage !== "check_fridge" && state.stage !== "feed_brutus";
 }

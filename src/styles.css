@@ -541,7 +541,8 @@ button[aria-pressed="true"] {
 .inventory-row,
 .equipment-row,
 .quest-detail-card,
-.save-card {
+.save-card,
+.debug-card {
   border: 1px solid rgb(244 239 232 / 0.17);
   border-radius: 9px;
   background: rgb(255 255 255 / 0.04);
@@ -665,8 +666,53 @@ button[aria-pressed="true"] {
   font-weight: 900;
 }
 
-.save-card strong {
+.save-card strong,
+.debug-card strong {
   color: #f2c765;
+}
+
+.debug-list {
+  display: grid;
+  gap: 10px;
+}
+
+.debug-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.debug-card > button {
+  flex: 0 0 auto;
+  min-width: 92px;
+}
+
+.debug-speed-card {
+  align-items: stretch;
+}
+
+.debug-speed-control {
+  display: grid;
+  grid-template-columns: 58px minmax(150px, 240px);
+  align-items: center;
+  gap: 10px;
+}
+
+.debug-speed-control output {
+  color: #f2c765;
+  font-weight: 900;
+  text-align: right;
+}
+
+.debug-speed-control input {
+  min-height: 44px;
+  accent-color: #f2c765;
+}
+
+.danger-action {
+  border-color: rgb(255 111 111 / 0.8);
+  background: rgb(105 33 33 / 0.9);
 }
 
 .save-actions {

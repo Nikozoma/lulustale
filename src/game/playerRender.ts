@@ -4,8 +4,8 @@ import type { FoundationMapId } from "./foundation";
 
 export const LULU_RENDER_SCALE_BY_MAP: Readonly<Record<FoundationMapId, number>> = {
   overworld: 1,
-  home: 1.25,
-  charles_jr: 1.25
+  home: 1.5,
+  charles_jr: 1.5
 };
 
 export function getLuluRenderScale(mapId: FoundationMapId): number {

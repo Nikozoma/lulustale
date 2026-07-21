@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { PLAYER, WALK_MAX_STRENGTH } from "./constants";
+import {
+  DEFAULT_PLAYER_SPEED_MULTIPLIER,
+  MAX_PLAYER_SPEED_MULTIPLIER,
+  MIN_PLAYER_SPEED_MULTIPLIER,
+  PLAYER,
+  PLAYER_SPEED_MULTIPLIER_STEP,
+  WALK_MAX_STRENGTH,
+  getPlayerMovementSpeed
+} from "./constants";
 import type { FoundationSemantic, FoundationVisual, RuntimeMap } from "./foundation";
 import { createPlayer, updatePlayer } from "./player";
 
@@ -38,6 +46,13 @@ function createOpenMap(widthTiles = 20, heightTiles = 20): RuntimeMap {
 }
 
 describe("authoritative player movement", () => {
+  it("uses the requested 1.50x defaults of 144 px/s walk and 240 px/s run", () => {
+    expect(DEFAULT_PLAYER_SPEED_MULTIPLIER).toBe(1.5);
+    expect([MIN_PLAYER_SPEED_MULTIPLIER, MAX_PLAYER_SPEED_MULTIPLIER, PLAYER_SPEED_MULTIPLIER_STEP]).toEqual([0.5, 2, 0.25]);
+    expect(PLAYER.walkSpeedPxPerSecond).toBe(144);
+    expect(PLAYER.runSpeedPxPerSecond).toBe(240);
+  });
+
   it("uses low analog strength to walk and ordinary strength to run", () => {
     const map = createOpenMap();
     const walker = createPlayer({ x: 160, y: 160 });
@@ -56,6 +71,16 @@ describe("authoritative player movement", () => {
     updatePlayer(player, { x: 1, y: 0 }, 1, map);
     expect(player.position.x).toBe(160 + PLAYER.runSpeedPxPerSecond);
     expect(player.isRunning).toBe(true);
+  });
+
+  it("adjusts both movement rates and locomotion cadence with the debug multiplier", () => {
+    const map = createOpenMap();
+    const player = createPlayer({ x: 160, y: 160 });
+    updatePlayer(player, { x: WALK_MAX_STRENGTH, y: 0 }, 1, map, 0.5);
+    expect(player.position.x).toBe(160 + getPlayerMovementSpeed(false, 0.5));
+    expect(getPlayerMovementSpeed(false, 2)).toBe(192);
+    expect(getPlayerMovementSpeed(true, 2)).toBeCloseTo(320);
+    expect(player.animationTime).toBe(0.5);
   });
 
   it("normalizes diagonal movement", () => {

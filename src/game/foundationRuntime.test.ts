@@ -71,12 +71,12 @@ describe("authoritative map runtime foundation", () => {
     }
   });
 
-  it("keeps the corrected Home entry spawn safe above the front-door threshold", () => {
+  it("keeps the corrected Home entry spawn safe below the top-left exterior door", () => {
     const home = runtimeMap("home");
     const spawn = home.semantic.spawns.find((candidate) => candidate.id === "spawn_home_entry")!;
     expect(canOccupy(home, spawn.pixel_point, PLAYER.collider)).toBe(true);
     expect(resolveSafeSpawn(home, spawn, PLAYER.collider)).toEqual({
-      position: { x: 464, y: 1200 },
+      position: { x: 208, y: 624 },
       adjusted: false
     });
   });
@@ -86,12 +86,18 @@ describe("authoritative map runtime foundation", () => {
     expect(home.collision[3][25]).toBe(false); // Bedroom right wall.
     expect(home.collision[15][13]).toBe(false); // Bedroom connector side wall.
     expect(home.collision[15][14]).toBe(true); // Visible connector opening.
-    expect(home.collision[16][5]).toBe(false); // Main-room top divider wall.
+    expect(home.collision[16][4]).toBe(false); // Main-room top divider wall.
+    expect(home.collision[16][6]).toBe(true); // Top-left exterior doorway opening.
     expect(home.collision[18][5]).toBe(true); // Main-room floor below divider.
+    expect(home.collision[25][3]).toBe(false); // Couch body.
+    expect(home.collision[25][6]).toBe(false); // Coffee-table body.
+    expect(home.collision[27][8]).toBe(true); // Open rug immediately beside the table.
+    expect(home.collision[25][9]).toBe(true); // Open floor beside the furniture grouping.
+    expect(home.collision[30][6]).toBe(true); // Open rug below the coffee table.
     expect(home.collision[27][22]).toBe(true); // Floor band in front of stove/fridge.
     expect(home.collision[28][23]).toBe(false); // Right pantry front.
     expect(home.collision[38][10]).toBe(false); // Bottom wall outside door.
-    expect(home.collision[38][12]).toBe(true); // Front-door opening.
+    expect(home.collision[38][12]).toBe(true); // Bottom sliding-door floor remains walkable scenery.
   });
 
   it("keeps the Home collision companion synchronized with corrected semantic regions", () => {
@@ -204,12 +210,13 @@ describe("authoritative map runtime foundation", () => {
     expect(canActivateObjectiveMarker(legalFloor, marker, 58)).toBe(true);
   });
 
-  it("allows front-door traversal to activate Home to Overworld without bypassing quest gating", () => {
+  it("uses the top-left exterior door, not the bottom sliding door, for Home to Overworld", () => {
     const home = runtimeMap("home");
-    const player = createPlayer({ x: 448, y: 1200 }, "down");
-    updatePlayer(player, { x: 0, y: 1 }, 0.25, home);
-    expect(player.position.y).toBeGreaterThan(1200);
+    const player = createPlayer({ x: 208, y: 624 }, "up");
+    updatePlayer(player, { x: 0, y: -1 }, 0.1, home);
+    expect(player.position.y).toBeLessThan(624);
     expect(transitionAt(home, player.position)?.id).toBe("transition_home_to_overworld");
+    expect(transitionAt(home, { x: 448, y: 1248 })).toBeNull();
 
     const beforeFeeding = createDemoQuestState();
     const readyToLeave = feedBrutusForQuest(takeDogFood(beforeFeeding));

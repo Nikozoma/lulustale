@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   applyQuestTransition,
+  canUseQuestTransition,
   winBirdGangBattle,
   chooseDayEnd,
   createDemoQuestState,
   feedBrutusForQuest,
   getDemoObjective,
+  isDay1TravelUnlocked,
   meetNightGuide,
   orderFries,
   resolveBirdInvestigation,
@@ -16,6 +18,13 @@ import {
 } from "./demoQuest";
 
 describe("Day 1 demo quest", () => {
+  const travelTransitions = [
+    "transition_home_to_overworld",
+    "transition_overworld_to_home",
+    "transition_overworld_to_charles_jr",
+    "transition_charles_jr_to_overworld"
+  ];
+
   it("runs the complete daytime route into night", () => {
     let state = createDemoQuestState();
     expect(getDemoObjective(state, "home")).toBe("Check the fridge.");
@@ -58,5 +67,30 @@ describe("Day 1 demo quest", () => {
     state = sleepAfterNight(state);
     expect(state.stage).toBe("complete");
     expect(state.phase).toBe("day");
+  });
+
+  it("permanently unlocks all established Day 1 travel links after Brutus is fed", () => {
+    const locked = createDemoQuestState();
+    expect(isDay1TravelUnlocked(locked)).toBe(false);
+    for (const transition of travelTransitions) expect(canUseQuestTransition(locked, transition)).toBe(false);
+
+    const unlocked = feedBrutusForQuest(takeDogFood(locked));
+    expect(isDay1TravelUnlocked(unlocked)).toBe(true);
+    for (const transition of travelTransitions) expect(canUseQuestTransition(unlocked, transition)).toBe(true);
+
+    const complete = { ...unlocked, stage: "complete" as const, birdGangDefeated: true };
+    for (const transition of travelTransitions) expect(canUseQuestTransition(complete, transition)).toBe(true);
+  });
+
+  it("does not change later quest progress during ordinary unlocked travel", () => {
+    const later = {
+      ...createDemoQuestState(),
+      stage: "find_bush_sword" as const,
+      phase: "night" as const,
+      hasFeather: true
+    };
+    for (const transition of travelTransitions) {
+      expect(applyQuestTransition(later, transition)).toBe(later);
+    }
   });
 });
