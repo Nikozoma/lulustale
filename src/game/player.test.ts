@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLAYER } from "./constants";
+import { PLAYER, WALK_MAX_STRENGTH } from "./constants";
 import type { FoundationSemantic, FoundationVisual, RuntimeMap } from "./foundation";
 import { createPlayer, updatePlayer } from "./player";
 
@@ -38,22 +38,32 @@ function createOpenMap(widthTiles = 20, heightTiles = 20): RuntimeMap {
 }
 
 describe("authoritative player movement", () => {
-  it("walks at 96 px/s and runs at 160 px/s", () => {
+  it("uses low analog strength to walk and ordinary strength to run", () => {
     const map = createOpenMap();
     const walker = createPlayer({ x: 160, y: 160 });
     const runner = createPlayer({ x: 160, y: 224 });
-    updatePlayer(walker, { x: 1, y: 0 }, false, 1, map);
-    updatePlayer(runner, { x: 1, y: 0 }, true, 1, map);
+    updatePlayer(walker, { x: WALK_MAX_STRENGTH, y: 0 }, 1, map);
+    updatePlayer(runner, { x: WALK_MAX_STRENGTH + 0.01, y: 0 }, 1, map);
     expect(walker.position.x).toBe(160 + PLAYER.walkSpeedPxPerSecond);
     expect(runner.position.x).toBe(160 + PLAYER.runSpeedPxPerSecond);
+    expect(walker.isRunning).toBe(false);
+    expect(runner.isRunning).toBe(true);
+  });
+
+  it("treats full-strength keyboard movement as running", () => {
+    const map = createOpenMap();
+    const player = createPlayer({ x: 160, y: 160 });
+    updatePlayer(player, { x: 1, y: 0 }, 1, map);
+    expect(player.position.x).toBe(160 + PLAYER.runSpeedPxPerSecond);
+    expect(player.isRunning).toBe(true);
   });
 
   it("normalizes diagonal movement", () => {
     const map = createOpenMap();
     const player = createPlayer({ x: 256, y: 256 });
-    updatePlayer(player, { x: 1, y: -1 }, false, 1, map);
+    updatePlayer(player, { x: 1, y: -1 }, 1, map);
     expect(Math.hypot(player.position.x - 256, player.position.y - 256)).toBeCloseTo(
-      PLAYER.walkSpeedPxPerSecond
+      PLAYER.runSpeedPxPerSecond
     );
     expect(player.facing).toBe("right_up");
   });
@@ -62,7 +72,7 @@ describe("authoritative player movement", () => {
     const map = createOpenMap(4, 4);
     map.collision[1][2] = false;
     const player = createPlayer({ x: 54, y: 64 });
-    updatePlayer(player, { x: 1, y: 0 }, false, 0.5, map);
+    updatePlayer(player, { x: 1, y: 0 }, 0.5, map);
     expect(player.position.x).toBeLessThan(64 - PLAYER.collider.width / 2 + 0.01);
     expect(PLAYER.collider).toEqual({ width: 20, height: 12, centerOffsetY: -6 });
   });
@@ -71,7 +81,7 @@ describe("authoritative player movement", () => {
     const map = createOpenMap();
     const player = createPlayer({ x: 160, y: 160 });
     player.action = "pet_dog";
-    updatePlayer(player, { x: 1, y: 0 }, true, 0.5, map);
+    updatePlayer(player, { x: 1, y: 0 }, 0.5, map);
     expect(player.position).toEqual({ x: 160, y: 160 });
     expect(player.actionTime).toBeCloseTo(0.5);
   });

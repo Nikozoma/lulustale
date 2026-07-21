@@ -60,6 +60,18 @@ describe("game shell mobile-first UI", () => {
     expect(html).not.toContain("interaction-prompt");
   });
 
+  it("has no dedicated Run control or obsolete touch-run wiring", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    const input = readFileSync(resolve(process.cwd(), "src/game/input.ts"), "utf8");
+    expect(html).not.toContain('id="run-button"');
+    expect(css).not.toContain("#run-button");
+    expect(main).not.toContain("runButton");
+    expect(input).not.toContain("touchRun");
+    expect(input).not.toContain("setTouchRun");
+  });
+
   it("ships the Brutus companion submenu inside the world interaction menu", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
     const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");

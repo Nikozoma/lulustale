@@ -7,6 +7,7 @@ import { canUseQuestTransition, createDemoQuestState, feedBrutusForQuest, takeDo
 import {
   canOccupy,
   decodeCollisionGrid,
+  findSafePlacement,
   pointInRect,
   resolveSafeSpawn,
   transitionAt,
@@ -107,6 +108,90 @@ describe("authoritative map runtime foundation", () => {
     expect(home.collision).toEqual(derived);
   });
 
+  it("keeps the enlarged Overworld collision companion synchronized with semantic authority", () => {
+    const overworld = runtimeMap("overworld");
+    expect(overworld.collision).toEqual(deriveSemanticCollision("overworld", 96, 68));
+  });
+
+  it("aligns enlarged Overworld apartment buildings, paths, landscaping, parking, and vehicles", () => {
+    const overworld = runtimeMap("overworld");
+    expect(overworld.collision[20][60]).toBe(false); // North apartment lower roof/facade.
+    expect(overworld.collision[34][60]).toBe(false); // Lulu apartment lower roof/facade.
+    expect(overworld.collision[50][60]).toBe(false); // South apartment lower roof/facade.
+    expect(overworld.collision[16][60]).toBe(true); // North building active walk-behind row.
+    expect(overworld.collision[30][60]).toBe(true); // Middle building active walk-behind row.
+    expect(overworld.collision[46][60]).toBe(true); // South building active walk-behind row.
+    expect(overworld.collision[37][65]).toBe(true); // Visible Home doorway.
+    expect(overworld.collision[40][70]).toBe(true); // Courtyard cross path.
+    expect(overworld.collision[42][68]).toBe(false); // Courtyard landscaped island.
+    expect(overworld.collision[40][45]).toBe(true); // West parking aisle.
+    expect(overworld.collision[30][49]).toBe(false); // Parked car in west aisle.
+  });
+
+  it("aligns roads, sidewalks, crossings, and Charles Jr. exterior geometry", () => {
+    const overworld = runtimeMap("overworld");
+    expect(overworld.collision[8][50]).toBe(false); // SE Division traffic lane.
+    expect(overworld.collision[8][12]).toBe(true); // Division east-side crosswalk.
+    expect(overworld.collision[20][8]).toBe(false); // SE 148th traffic lane.
+    expect(overworld.collision[13][8]).toBe(true); // South-side intersection crosswalk.
+    expect(overworld.collision[39][8]).toBe(true); // Charles property crosswalk.
+    expect(overworld.collision[21][29]).toBe(true); // Charles active walk-behind row.
+    expect(overworld.collision[28][29]).toBe(false); // Charles lower building footprint.
+    expect(overworld.collision[37][29]).toBe(true); // Charles entrance threshold.
+    expect(overworld.collision[30][22]).toBe(true); // Charles parking aisle.
+    expect(overworld.collision[26][18]).toBe(false); // Parked cars.
+    expect(overworld.collision[41][32]).toBe(false); // Service carts.
+    expect(overworld.collision[30][40]).toBe(false); // Property boundary hedge.
+  });
+
+  it("keeps lower nature and event routes accessible without crossing solid scenery", () => {
+    const overworld = runtimeMap("overworld");
+    expect(overworld.collision[55][30]).toBe(true); // Charles south lawn.
+    expect(overworld.collision[53][22]).toBe(false); // Charles roadside sign.
+    expect(overworld.collision[63][65]).toBe(true); // Lower dirt event area.
+    expect(overworld.collision[59][60]).toBe(false); // North event fence.
+    expect(overworld.collision[59][65]).toBe(true); // Visible center gate.
+  });
+
+  it("keeps Overworld transitions, arrivals, and authored NPC anchors on safe visible routes", () => {
+    const overworld = runtimeMap("overworld");
+    for (const transition of overworld.semantic.transitions) {
+      const center = {
+        x: transition.pixel_rect.x + transition.pixel_rect.width / 2,
+        y: transition.pixel_rect.y + transition.pixel_rect.height / 2
+      };
+      expect(canOccupy(overworld, center, PLAYER.collider), transition.id).toBe(true);
+    }
+    for (const spawn of overworld.semantic.spawns) {
+      expect(resolveSafeSpawn(overworld, spawn, PLAYER.collider), spawn.id).toEqual({
+        position: spawn.pixel_point,
+        adjusted: false
+      });
+    }
+    for (const anchor of overworld.semantic.npc_spawn_markers) {
+      expect(canOccupy(overworld, anchor.pixel_point, PLAYER.collider), anchor.id).toBe(true);
+    }
+  });
+
+  it("preserves connected Day 1, bird, and lower-event routes on the corrected grid", () => {
+    const overworld = runtimeMap("overworld");
+    const homeArrival = overworld.semantic.spawns.find((spawn) => spawn.id === "spawn_overworld_from_home")!.pixel_point;
+    const charlesDoor = overworld.semantic.transitions.find(
+      (transition) => transition.id === "transition_overworld_to_charles_jr"
+    )!.pixel_rect;
+    const charlesTarget = { x: charlesDoor.x + charlesDoor.width / 2, y: charlesDoor.y + charlesDoor.height / 2 };
+    const bushApproach = { x: 68.5 * 32, y: 40.5 * 32 };
+    const birdHideout = { x: 23 * 32, y: 48.5 * 32 };
+    const birdGang = findSafePlacement(overworld, { x: 87.5 * 32, y: 48.5 * 32 }, PLAYER.collider, true)!;
+    const lowerEvent = overworld.semantic.npc_spawn_markers.find(
+      (anchor) => anchor.id === "npc_anchor_lower_event_area"
+    )!.pixel_point;
+
+    for (const target of [charlesTarget, birdHideout, bushApproach, birdGang, lowerEvent]) {
+      expect(hasCollisionRoute(overworld, homeArrival, target), JSON.stringify(target)).toBe(true);
+    }
+  });
+
   it("places the refrigerator objective within range of legal floor", () => {
     const home = runtimeMap("home");
     const refrigerator = home.semantic.interactions.find((candidate) => candidate.id === "interaction_refrigerator")!;
@@ -122,7 +207,7 @@ describe("authoritative map runtime foundation", () => {
   it("allows front-door traversal to activate Home to Overworld without bypassing quest gating", () => {
     const home = runtimeMap("home");
     const player = createPlayer({ x: 448, y: 1200 }, "down");
-    updatePlayer(player, { x: 0, y: 1 }, false, 0.25, home);
+    updatePlayer(player, { x: 0, y: 1 }, 0.25, home);
     expect(player.position.y).toBeGreaterThan(1200);
     expect(transitionAt(home, player.position)?.id).toBe("transition_home_to_overworld");
 
@@ -217,10 +302,48 @@ type VisualAuthorityDescriptor = FoundationVisual & {
 
 type TileRect = { x: number; y: number; width: number; height: number };
 
+function deriveSemanticCollision(id: FoundationMapId, width: number, height: number): boolean[][] {
+  const semantic = readJson<FoundationSemantic & {
+    walkable_regions: Array<{ tile_rect: TileRect }>;
+    blocked_regions: Array<{ tile_rect: TileRect }>;
+    passable_overrides: Array<{ tile_rect: TileRect }>;
+  }>(`public/data/maps/${id}/semantic.json`);
+  const derived = Array.from({ length: height }, () => Array.from({ length: width }, () => false));
+  for (const region of semantic.walkable_regions) fillTiles(derived, region.tile_rect, true);
+  for (const region of semantic.blocked_regions) fillTiles(derived, region.tile_rect, false);
+  for (const region of semantic.passable_overrides) fillTiles(derived, region.tile_rect, true);
+  return derived;
+}
+
 function fillTiles(grid: boolean[][], rect: TileRect, value: boolean): void {
   for (let y = rect.y; y < rect.y + rect.height; y += 1) {
     for (let x = rect.x; x < rect.x + rect.width; x += 1) grid[y][x] = value;
   }
+}
+
+function hasCollisionRoute(map: RuntimeMap, start: { x: number; y: number }, end: { x: number; y: number }): boolean {
+  const tile = (point: { x: number; y: number }) => ({
+    x: Math.floor(point.x / map.tileSize),
+    y: Math.floor(point.y / map.tileSize)
+  });
+  const from = tile(start);
+  const target = tile(end);
+  const queue = [from];
+  const visited = new Set([`${from.x},${from.y}`]);
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current.x === target.x && current.y === target.y) return true;
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+      const next = { x: current.x + dx, y: current.y + dy };
+      const key = `${next.x},${next.y}`;
+      if (visited.has(key)) continue;
+      const center = { x: (next.x + 0.5) * map.tileSize, y: (next.y + 0.5) * map.tileSize };
+      if (!canOccupy(map, center, PLAYER.collider)) continue;
+      visited.add(key);
+      queue.push(next);
+    }
+  }
+  return false;
 }
 
 function expectAssetHash(asset: string, embeddedHash: string, manifestHashes: Record<string, string>): void {

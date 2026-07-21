@@ -1,4 +1,4 @@
-import { PLAYER } from "./constants";
+import { PLAYER, WALK_MAX_STRENGTH } from "./constants";
 import { canOccupy, type RuntimeMap, type WorldPoint } from "./foundation";
 
 export type Facing = "down" | "left_down" | "left" | "left_up" | "up" | "right_up" | "right" | "right_down";
@@ -28,7 +28,6 @@ export function createPlayer(position: WorldPoint, facing: Facing = "down"): Pla
 export function updatePlayer(
   player: PlayerState,
   inputVector: WorldPoint,
-  running: boolean,
   dt: number,
   map: RuntimeMap
 ): void {
@@ -47,8 +46,9 @@ export function updatePlayer(
     return;
   }
 
+  const running = movement.strength > WALK_MAX_STRENGTH;
   const speed = running ? PLAYER.runSpeedPxPerSecond : PLAYER.walkSpeedPxPerSecond;
-  const distance = speed * movement.strength * dt;
+  const distance = speed * dt;
   const nextX = { x: player.position.x + movement.direction.x * distance, y: player.position.y };
   const nextY = { x: player.position.x, y: player.position.y + movement.direction.y * distance };
 

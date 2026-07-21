@@ -4,6 +4,7 @@ export const CORE_SAFE_VIEW = { width: 640, height: 360 } as const;
 export const CHARACTER_CELL = { width: 96, height: 96 } as const;
 export const ROOT_ANCHOR = { x: 48, y: 88 } as const;
 export const INTERACTION_RADIUS_PX = 40;
+export const WALK_MAX_STRENGTH = 0.3;
 
 export const PLAYER = {
   walkSpeedPxPerSecond: 96,

@@ -257,11 +257,6 @@ button[aria-pressed="true"] {
   bottom: max(10px, env(safe-area-inset-bottom));
 }
 
-#run-button {
-  min-width: 58px;
-  min-height: 50px;
-}
-
 #status {
   position: fixed;
   left: max(10px, env(safe-area-inset-left));
@@ -282,9 +277,6 @@ button[aria-pressed="true"] {
     font-size: 12px;
   }
 
-  #run-button {
-    min-height: 44px;
-  }
 }
 
 .story-panel {

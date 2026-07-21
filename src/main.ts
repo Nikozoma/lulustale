@@ -120,7 +120,6 @@ const gateCopy = requireElement<HTMLParagraphElement>("#gate-copy");
 const gateButton = requireElement<HTMLButtonElement>("#gate-button");
 const debugToggle = requireElement<HTMLButtonElement>("#debug-toggle");
 const phaseButton = requireElement<HTMLButtonElement>("#phase-button");
-const runButton = requireElement<HTMLButtonElement>("#run-button");
 const petButton = requireElement<HTMLButtonElement>("#pet-button");
 const feedButton = requireElement<HTMLButtonElement>("#feed-button");
 const commandButton = requireElement<HTMLButtonElement>("#command-button");
@@ -167,7 +166,7 @@ const canvasContext = context;
 
 const INTERACTION_RADIUS = 58;
 const BUSH_TILE = { x: 68, y: 38 }; // Existing real bush east of Home in the locked 96×68 Overworld grid.
-const BIRD_GANG_DESIGN_POINT = { x: 84.5 * 32, y: 48.5 * 32 }; // Enhanced quest draft (42,24) mapped to the locked 2× grid.
+const BIRD_GANG_DESIGN_POINT = { x: 87.5 * 32, y: 48.5 * 32 }; // Nearest open parking position beside the authored point's visible parked car.
 
 type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save";
 type ActiveWorldBubble = { position: WorldPoint; text: string; expiresAt: number };
@@ -342,7 +341,8 @@ async function start(): Promise<void> {
     true
   ) ?? apartmentAnchor;
   const guidePosition = findSafePlacement(overworld, apartmentAnchor, PLAYER.collider, true) ?? apartmentAnchor;
-  const birdHideoutPosition = findSafePlacement(overworld, { x: charlesAnchor.x, y: charlesAnchor.y + 128 }, PLAYER.collider, true) ?? charlesAnchor;
+  const birdHideoutPosition =
+    findSafePlacement(overworld, { x: charlesAnchor.x, y: charlesAnchor.y + 208 }, PLAYER.collider, true) ?? charlesAnchor;
   const bushInteractionPosition = findSafePlacement(
     overworld,
     { x: (BUSH_TILE.x + 0.5) * 32, y: (BUSH_TILE.y + 2.5) * 32 },
@@ -468,13 +468,6 @@ async function start(): Promise<void> {
   });
   backupLoadInput.addEventListener("change", () => void importBackupFromInput());
   window.addEventListener("beforeunload", () => persistAutosave());
-  for (const eventName of ["pointerdown", "pointerup", "pointercancel", "pointerleave"] as const) {
-    runButton.addEventListener(eventName, (event) => {
-      input.setTouchRun(eventName === "pointerdown");
-      runButton.setAttribute("aria-pressed", String(eventName === "pointerdown"));
-      event.preventDefault();
-    });
-  }
   battleAttackButton.addEventListener("click", () => {
     if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
     battleMenuMode = "targets";
@@ -1518,7 +1511,6 @@ async function start(): Promise<void> {
     petButton.disabled = uiBlocked || phase === "night";
     feedButton.disabled = uiBlocked || phase === "night";
     commandButton.disabled = uiBlocked || phase === "night";
-    runButton.disabled = uiBlocked;
     menuButton.disabled = busy || storyBusy || Boolean(battleState);
     worldActionToggle.disabled = busy || storyBusy || menuOpen || Boolean(battleState);
     for (const button of worldActionButtons) {
@@ -1641,7 +1633,7 @@ async function start(): Promise<void> {
     }
 
     if (canUseInput()) {
-      updatePlayer(player, input.getMoveVector(), input.isRunning(), dt, activeMap);
+      updatePlayer(player, input.getMoveVector(), dt, activeMap);
       if (phase === "day") updateCompanion(companion, player, dt, activeMap, characters.interactions);
       const transition = transitionAt(activeMap, player.position);
       if (transition && canUseQuestTransition(quest, transition.id)) void enterMap(transition);

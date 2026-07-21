@@ -20,21 +20,21 @@ const KEYS = {
   KeyD: { x: 1, y: 0 }
 } as const;
 
-const TOUCH_RADIUS = 58;
+export const TOUCH_RADIUS = 58;
+export const TOUCH_DEADZONE_PX = 5;
 
 export function createInputController(canvas: HTMLCanvasElement, getViewport: () => Size) {
   const pressed = new Set<string>();
   let movementPointer: TrackedPointer | null = null;
-  let touchRun = false;
 
   window.addEventListener("keydown", (event) => {
-    if (event.code in KEYS || event.code === "ShiftLeft" || event.code === "ShiftRight") {
+    if (event.code in KEYS) {
       pressed.add(event.code);
       event.preventDefault();
     }
   });
   window.addEventListener("keyup", (event) => {
-    if (event.code in KEYS || event.code === "ShiftLeft" || event.code === "ShiftRight") {
+    if (event.code in KEYS) {
       pressed.delete(event.code);
       event.preventDefault();
     }
@@ -73,20 +73,10 @@ export function createInputController(canvas: HTMLCanvasElement, getViewport: ()
       if (keyboard.x !== 0 || keyboard.y !== 0 || !movementPointer) {
         return keyboard;
       }
-      const dx = movementPointer.current.x - movementPointer.start.x;
-      const dy = movementPointer.current.y - movementPointer.start.y;
-      const length = Math.hypot(dx, dy);
-      if (length < 5) {
-        return { x: 0, y: 0 };
-      }
-      const strength = Math.min(length / TOUCH_RADIUS, 1);
-      return { x: (dx / length) * strength, y: (dy / length) * strength };
-    },
-    isRunning(): boolean {
-      return touchRun || pressed.has("ShiftLeft") || pressed.has("ShiftRight");
-    },
-    setTouchRun(active: boolean): void {
-      touchRun = active;
+      return movementVectorFromDisplacement(
+        movementPointer.current.x - movementPointer.start.x,
+        movementPointer.current.y - movementPointer.start.y
+      );
     },
     getTouchState(): TouchState {
       return movementPointer
@@ -96,7 +86,16 @@ export function createInputController(canvas: HTMLCanvasElement, getViewport: ()
   };
 }
 
-function keyboardVector(pressed: Set<string>): WorldPoint {
+export function movementVectorFromDisplacement(dx: number, dy: number): WorldPoint {
+  const length = Math.hypot(dx, dy);
+  if (length < TOUCH_DEADZONE_PX) {
+    return { x: 0, y: 0 };
+  }
+  const strength = Math.min(length / TOUCH_RADIUS, 1);
+  return { x: (dx / length) * strength, y: (dy / length) * strength };
+}
+
+export function keyboardVector(pressed: ReadonlySet<string>): WorldPoint {
   let x = 0;
   let y = 0;
   for (const code of pressed) {

@@ -1,5 +1,16 @@
 import type { WorldPoint } from "./world";
 import type { Facing } from "./player";
+import type { FoundationMapId } from "./foundation";
+
+export const LULU_RENDER_SCALE_BY_MAP: Readonly<Record<FoundationMapId, number>> = {
+  overworld: 1,
+  home: 1.25,
+  charles_jr: 1.25
+};
+
+export function getLuluRenderScale(mapId: FoundationMapId): number {
+  return LULU_RENDER_SCALE_BY_MAP[mapId];
+}
 
 export type PlayerAnimationSheet = "idle" | "walk";
 
@@ -42,20 +53,19 @@ export type PlayerSpriteDrawBox = {
 };
 
 export function getPlayerSpriteDrawBox(
-  feetAnchor: WorldPoint,
+  root: WorldPoint,
   frameWidth: number,
   frameHeight: number,
   renderScale: number,
-  footOffsetY: number,
-  anchorX = 0.5,
-  anchorY = 1
+  rootAnchorX: number,
+  rootAnchorY: number
 ): PlayerSpriteDrawBox {
   const width = frameWidth * renderScale;
   const height = frameHeight * renderScale;
 
   return {
-    x: feetAnchor.x - width * anchorX,
-    y: feetAnchor.y - height * anchorY + footOffsetY,
+    x: root.x - rootAnchorX * renderScale,
+    y: root.y - rootAnchorY * renderScale,
     width,
     height
   };

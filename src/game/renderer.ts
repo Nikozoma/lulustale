@@ -10,6 +10,7 @@ import {
 } from "./foundation";
 import type { TouchState } from "./input";
 import type { PlayerState } from "./player";
+import { getLuluRenderScale, getPlayerSpriteDrawBox } from "./playerRender";
 import type { LogicalViewport } from "./viewport";
 import type { WorldActorRenderState } from "./worldActors";
 
@@ -70,7 +71,7 @@ export class FoundationRenderer {
     for (const actor of state.actors) {
       entities.push({ y: actor.position.y, draw: () => this.drawWorldActor(actor) });
     }
-    entities.push({ y: state.player.position.y, draw: () => this.drawPlayer(state.player) });
+    entities.push({ y: state.player.position.y, draw: () => this.drawPlayer(state.player, state.map.id) });
     entities.sort((a, b) => a.y - b.y).forEach((entity) => entity.draw());
 
     this.drawForegrounds(state.visual.foregrounds, state.map, [
@@ -93,7 +94,7 @@ export class FoundationRenderer {
     this.drawAnimation(actor.definition, actor.facing, actor.animationTime, actor.frameSeconds, actor.position);
   }
 
-  private drawPlayer(player: PlayerState): void {
+  private drawPlayer(player: PlayerState, mapId: RuntimeMap["id"]): void {
     const animationName = player.action ?? (player.isMoving ? (player.isRunning ? "run" : "walk") : "idle");
     const definition = this.characters.lulu.get(animationName) ?? this.characters.lulu.get("idle");
     if (!definition) {
@@ -106,7 +107,14 @@ export class FoundationRenderer {
           ? PLAYER.runFrameSeconds
           : PLAYER.walkFrameSeconds
         : PLAYER.idleFrameSeconds;
-    this.drawAnimation(definition, player.facing, player.action ? player.actionTime : player.animationTime, frameSeconds, player.position);
+    this.drawAnimation(
+      definition,
+      player.facing,
+      player.action ? player.actionTime : player.animationTime,
+      frameSeconds,
+      player.position,
+      getLuluRenderScale(mapId)
+    );
   }
 
   private drawCompanion(companion: CompanionState): void {
@@ -130,21 +138,30 @@ export class FoundationRenderer {
     facing: PlayerState["facing"],
     animationTime: number,
     frameSeconds: number,
-    root: WorldPoint
+    root: WorldPoint,
+    renderScale = 1
   ): void {
     const frame = Math.floor(animationTime / frameSeconds) % definition.framesPerDirection;
     const sourceX = frame * definition.frameWidth;
     const sourceY = directionRow(facing) * definition.frameHeight;
+    const destination = getPlayerSpriteDrawBox(
+      root,
+      definition.frameWidth,
+      definition.frameHeight,
+      renderScale,
+      definition.rootAnchorX,
+      definition.rootAnchorY
+    );
     this.ctx.drawImage(
       definition.image,
       sourceX,
       sourceY,
       definition.frameWidth,
       definition.frameHeight,
-      Math.round(root.x - definition.rootAnchorX),
-      Math.round(root.y - definition.rootAnchorY),
-      definition.frameWidth,
-      definition.frameHeight
+      Math.round(destination.x),
+      Math.round(destination.y),
+      destination.width,
+      destination.height
     );
   }
 
