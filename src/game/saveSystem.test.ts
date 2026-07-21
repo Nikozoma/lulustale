@@ -12,7 +12,7 @@ describe("backup save format", () => {
       mapId: "home" as const,
       phase: "day" as const,
       player: { position: { x: 464, y: 1232 }, facing: "down" as const },
-      companion: { position: { x: 420, y: 1232 }, facing: "right" as const, mode: "follow" as const },
+      companion: { position: { x: 420, y: 1232 }, facing: "right" as const, mode: "follow" as const, commandPose: null },
       inventory: [],
       equipment: createDefaultEquipment(),
       status: createDefaultStatus(),
@@ -24,4 +24,50 @@ describe("backup save format", () => {
   it("rejects unrelated JSON", () => {
     expect(() => parseBackupSave('{"hello":"world"}')).toThrow(/compatible/);
   });
+
+  it.each([
+    ["follow", null, "follow", null],
+    ["stay", "sit", "stay", "sit"],
+    ["stay", "lay", "stay", "lay"]
+  ] as const)("preserves Brutus %s / %s through backup normalization", (mode, commandPose, expectedMode, expectedPose) => {
+    const state = savedState({ mode, commandPose });
+    expect(parseBackupSave(serializeBackupSave(state)).companion).toMatchObject({
+      mode: expectedMode,
+      commandPose: expectedPose
+    });
+  });
+
+  it("restores older stay saves without commandPose as Sit / Stay", () => {
+    const state = savedState({ mode: "stay" });
+    delete state.companion.commandPose;
+    expect(parseBackupSave(serializeBackupSave(state)).companion.commandPose).toBe("sit");
+  });
+
+  it("safely normalizes invalid command poses", () => {
+    const state = savedState({ mode: "stay", commandPose: "roll_over" as never });
+    expect(parseBackupSave(serializeBackupSave(state)).companion.commandPose).toBe("sit");
+
+    const following = savedState({ mode: "follow", commandPose: "lay" });
+    expect(parseBackupSave(serializeBackupSave(following)).companion.commandPose).toBeNull();
+  });
 });
+
+function savedState(companion: { mode: "follow" | "stay"; commandPose?: "sit" | "lay" | null }) {
+  return {
+    schemaVersion: SAVE_SCHEMA_VERSION,
+    savedAt: "2026-07-20T00:00:00.000Z",
+    quest: createDemoQuestState(),
+    mapId: "home" as const,
+    phase: "day" as const,
+    player: { position: { x: 464, y: 1232 }, facing: "down" as const },
+    companion: {
+      position: { x: 420, y: 1232 },
+      facing: "right" as const,
+      ...companion
+    },
+    inventory: [],
+    equipment: createDefaultEquipment(),
+    status: createDefaultStatus(),
+    flags: { dayWarningSeen: false }
+  };
+}

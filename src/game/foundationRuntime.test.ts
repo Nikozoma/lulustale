@@ -117,7 +117,55 @@ describe("authoritative map runtime foundation", () => {
       expect(createHash("sha256").update(bytes).digest("hex"), relative).toBe(expectedHash);
     }
   });
+
+  it("keeps every active visual descriptor synchronized with runtime asset and package authority", () => {
+    const manifest = readJson<{
+      map_visual_sources: { overworld: string; home_and_charles_jr: string };
+      map_assets_sha256: Record<string, string>;
+    }>("RUNTIME_AUTHORITY_MANIFEST.json");
+    const expectedPackages: Record<FoundationMapId, string> = {
+      overworld: manifest.map_visual_sources.overworld,
+      home: manifest.map_visual_sources.home_and_charles_jr.split(" (")[0],
+      charles_jr: manifest.map_visual_sources.home_and_charles_jr.split(" (")[0]
+    };
+
+    for (const id of Object.keys(expected) as FoundationMapId[]) {
+      for (const phase of ["day", "night"] as const) {
+        const visual = readJson<VisualAuthorityDescriptor>(`public/data/maps/${id}/visual_${phase}.json`);
+        expect(visual.art_source).toEqual({
+          package: expectedPackages[id],
+          authority: "RUNTIME_AUTHORITY_MANIFEST.json"
+        });
+        expectAssetHash(visual.base_layer.asset, visual.base_layer.sha256, manifest.map_assets_sha256);
+        for (const layer of visual.foreground_layers) {
+          expectAssetHash(layer.asset, layer.sha256, manifest.map_assets_sha256);
+          expectAssetHash(layer.day_asset, layer.day_sha256, manifest.map_assets_sha256);
+          expectAssetHash(layer.night_asset, layer.night_sha256, manifest.map_assets_sha256);
+        }
+      }
+    }
+  });
 });
+
+type VisualAuthorityDescriptor = FoundationVisual & {
+  art_source: { package: string; authority: string };
+  base_layer: FoundationVisual["base_layer"] & { sha256: string };
+  foreground_layers: Array<FoundationVisual["foreground_layers"][number] & {
+    sha256: string;
+    day_asset: string;
+    day_sha256: string;
+    night_asset: string;
+    night_sha256: string;
+  }>;
+};
+
+function expectAssetHash(asset: string, embeddedHash: string, manifestHashes: Record<string, string>): void {
+  const relative = asset.replace(/^production\//, "");
+  const bytes = readFileSync(resolve(process.cwd(), "public/assets/maps/native", relative));
+  const actual = createHash("sha256").update(bytes).digest("hex");
+  expect(embeddedHash, asset).toBe(actual);
+  expect(manifestHashes[relative], asset).toBe(actual);
+}
 
 function readPngDimensions(path: string): readonly [number, number] {
   const png = readFileSync(path);

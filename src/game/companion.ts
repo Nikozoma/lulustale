@@ -86,6 +86,16 @@ export function createCompanion(position: WorldPoint, facing: Facing = "down"): 
   };
 }
 
+export function restoreCompanionCommandState(
+  companion: CompanionState,
+  saved: { mode: CompanionMode; commandPose?: "sit" | "lay" | null }
+): void {
+  companion.mode = saved.mode;
+  companion.commandPose = saved.mode === "stay" ? (saved.commandPose === "lay" ? "lay" : "sit") : null;
+  companion.action = saved.mode === "stay" ? (companion.commandPose === "lay" ? "lay_rest" : "sit") : null;
+  companion.actionTime = 0;
+}
+
 export function resetCompanionForMap(
   companion: CompanionState,
   map: RuntimeMap,

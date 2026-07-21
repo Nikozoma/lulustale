@@ -9,11 +9,14 @@
   <body>
     <main id="app">
       <section id="title-screen" class="title-screen" aria-label="Lulu's Tale title screen">
-        <img class="title-screen-art" src="/assets/ui/lulus-tale-title-screen.png" alt="Lulu's Tale nighttime neighborhood title artwork" />
-        <button id="title-play-button" class="title-play-hitbox" type="button" aria-label="Play Lulu's Tale"><span class="sr-only">Play</span></button>
+        <div class="title-art-frame">
+          <img class="title-screen-art" src="/assets/ui/lulus-tale-title-screen.png" alt="Lulu's Tale nighttime neighborhood title artwork" />
+          <button id="title-play-button" class="title-play-hitbox" type="button" aria-label="Play Lulu's Tale"><span class="sr-only">Play</span></button>
+        </div>
       </section>
 
       <canvas id="game" width="640" height="360" aria-label="Lulu's Tale playable demo"></canvas>
+      <button id="objective-marker" class="objective-marker" type="button" aria-label="Interact with current objective" hidden><span aria-hidden="true">❕</span></button>
 
       <section id="orientation-gate" aria-live="polite">
         <div class="gate-panel">
@@ -43,8 +46,8 @@
           <div id="world-action-menu" class="world-action-menu" hidden aria-label="Nearby actions">
             <button type="button" data-world-action="use">Use</button>
             <button type="button" data-world-action="chat">Chat</button>
-            <button type="button" data-world-action="interact">Interact</button>
             <button type="button" data-world-action="pickup">Pick Up</button>
+            <button id="brutus-action-entry" type="button" data-open-companion>Brutus</button>
             <div id="companion-action-menu" class="companion-action-menu" hidden aria-label="Brutus actions">
               <div class="companion-action-heading">Brutus</div>
               <button type="button" data-companion-action="pet">Pet</button>

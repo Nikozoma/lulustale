@@ -95,7 +95,8 @@ function normalizePersistentGameState(value: Record<string, unknown>): Persisten
     companion: {
       position: { ...companion.position },
       facing: companion.facing as PersistentGameState["companion"]["facing"],
-      mode: companion.mode === "stay" ? "stay" : "follow"
+      mode: companion.mode === "stay" ? "stay" : "follow",
+      commandPose: normalizeCompanionCommandPose(companion.mode, companion.commandPose)
     },
     inventory: Array.isArray(value.inventory)
       ? (value.inventory as PersistentGameState["inventory"]).filter(
@@ -117,6 +118,11 @@ function normalizePersistentGameState(value: Record<string, unknown>): Persisten
       : createDefaultStatus(),
     flags: isRecord(value.flags) ? { dayWarningSeen: value.flags.dayWarningSeen === true } : { dayWarningSeen: false }
   };
+}
+
+function normalizeCompanionCommandPose(mode: unknown, commandPose: unknown): "sit" | "lay" | null {
+  if (mode !== "stay") return null;
+  return commandPose === "lay" ? "lay" : "sit";
 }
 
 function backupFilename(date: Date): string {

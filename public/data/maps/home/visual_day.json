@@ -13,8 +13,8 @@
     }
   },
   "art_source": {
-    "package": "Lulus_Tale_Native_Map_Artwork_Full_v1_5.zip",
-    "package_sha256": "877b4ff37ef1dc08d1a283f2a40e03ecd05c2635dbb1e47cfee2aa0a9bda3fb0"
+    "package": "Lulus_Tale_Native_Map_Artwork_Full_v1_1.zip",
+    "authority": "RUNTIME_AUTHORITY_MANIFEST.json"
   },
   "foreground_layers": [
     {
@@ -28,7 +28,7 @@
       "day_asset": "production/home/high_foreground_day.png",
       "night_asset": "production/home/high_foreground_night.png",
       "day_sha256": "dd39dad3a1462164010e730a5597a5d2018c14cd9439ae042aeaa24ba2cfe9df",
-      "night_sha256": "419fed94716456c7d18df57ec6ba183e4ade9cbbc4fff42e9f03a1e04a4593e8",
+      "night_sha256": "1f8f3f85a6501968732a1765464535709047beabd3d590764737272671bb4cfb",
       "alpha_mask_sha256": "fb47afde27478d8987b6d8a76df29f4bc2314bd736b2ce2ee50b200717a78090",
       "night_alpha_mask_sha256": "fb47afde27478d8987b6d8a76df29f4bc2314bd736b2ce2ee50b200717a78090",
       "alpha_geometry_identical_day_night": true,

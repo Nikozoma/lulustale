@@ -19,6 +19,7 @@ import {
   getFeedingPropPosition,
   getFetchToyPosition,
   resetCompanionForMap,
+  restoreCompanionCommandState,
   updateCompanion,
   type CompanionActionName,
   type CompanionInteractionName
@@ -81,6 +82,7 @@ import {
 import { createInputController } from "./game/input";
 import {
   WORLD_ACTION_LABELS,
+  canActivateObjectiveMarker,
   describeWorldAction,
   getAvailableWorldActions,
   type WorldActionKind,
@@ -102,6 +104,7 @@ import {
 const titleScreen = requireElement<HTMLElement>("#title-screen");
 const titlePlayButton = requireElement<HTMLButtonElement>("#title-play-button");
 const canvas = requireElement<HTMLCanvasElement>("#game");
+const objectiveMarker = requireElement<HTMLButtonElement>("#objective-marker");
 const status = requireElement<HTMLDivElement>("#status");
 const objective = requireElement<HTMLDivElement>("#objective");
 const message = requireElement<HTMLDivElement>("#quest-message");
@@ -119,6 +122,7 @@ const menuButton = requireElement<HTMLButtonElement>("#menu-button");
 const worldActionToggle = requireElement<HTMLButtonElement>("#world-action-toggle");
 const worldActionMenu = requireElement<HTMLDivElement>("#world-action-menu");
 const worldActionButtons = [...worldActionMenu.querySelectorAll<HTMLButtonElement>("button[data-world-action]")];
+const brutusActionEntry = requireElement<HTMLButtonElement>("#brutus-action-entry");
 const companionActionMenu = requireElement<HTMLDivElement>("#companion-action-menu");
 const companionActionButtons = [...companionActionMenu.querySelectorAll<HTMLButtonElement>("button[data-companion-action]")];
 const worldChatBubble = requireElement<HTMLDivElement>("#world-chat-bubble");
@@ -227,7 +231,7 @@ async function start(): Promise<void> {
     restoredSave?.companion.facing ?? "down"
   );
   if (restoredSave && restoredCompanionPosition) {
-    companion.mode = restoredSave.companion.mode;
+    restoreCompanionCommandState(companion, restoredSave.companion);
     companion.pathHistory = [{ ...companion.position }, { ...player.position }];
   } else {
     resetCompanionForMap(companion, activeMap, player.position, homeCompanionAnchor?.pixel_point);
@@ -305,8 +309,12 @@ async function start(): Promise<void> {
       closeMenu();
     } else if (event.code === "Escape" && actionMenuOpen) {
       closeActionMenu();
-    } else if (event.code === "KeyE" && !menuOpen && !storyBusy && !busy) {
-      if (actionMenuOpen) {
+    } else if (event.code === "KeyE" && !menuOpen && !storyBusy && !busy && !battleState) {
+      const markerTarget = getQuestTargetPosition();
+      if (canActivateObjectiveMarker(player.position, markerTarget, INTERACTION_RADIUS)) {
+        closeActionMenu();
+        void handleQuestInteraction();
+      } else if (actionMenuOpen) {
         closeActionMenu();
       } else {
         actionMenuOpen = true;
@@ -340,6 +348,11 @@ async function start(): Promise<void> {
     updateWorldActionMenu();
   });
   worldActionMenu.addEventListener("click", (event) => {
+    const openCompanionButton = (event.target as Element).closest<HTMLButtonElement>("button[data-open-companion]");
+    if (openCompanionButton && !openCompanionButton.disabled) {
+      openCompanionActionMenu();
+      return;
+    }
     const companionButton = (event.target as Element).closest<HTMLButtonElement>("button[data-companion-action]");
     const companionAction = companionButton?.dataset.companionAction as CompanionActionName | undefined;
     if (companionButton && companionAction && !companionButton.disabled) {
@@ -351,6 +364,7 @@ async function start(): Promise<void> {
     if (!button || !kind || button.disabled) return;
     void runWorldAction(kind);
   });
+  objectiveMarker.addEventListener("click", () => void activateObjectiveMarker());
   menuClose.addEventListener("click", closeMenu);
   questTrackerOpen.addEventListener("click", () => openMenu("quest"));
   questTrackerMinimize.addEventListener("click", () => {
@@ -693,11 +707,11 @@ async function start(): Promise<void> {
       case "check_fridge":
         return { id: "quest-fridge", label: "Fridge", kind: "use", position: target, priority: 100 };
       case "feed_brutus":
-        return { id: "quest-brutus", label: "Brutus", kind: "interact", position: target, priority: 100 };
+        return null;
       case "order_fries":
         return { id: "cashier", label: "Charles Jr. Employee", kind: "chat", position: target, priority: 100 };
       case "investigate_bird":
-        return { id: "quest-fries-thief", label: "Suspicious Bird", kind: "interact", position: target, priority: 100 };
+        return null;
       case "choose_day_end":
       case "night_quest_pending":
       case "sleep_after_night":
@@ -707,7 +721,7 @@ async function start(): Promise<void> {
       case "find_bush_sword":
         return { id: "quest-bush-sword", label: "Bush Sword", kind: "pickup", position: target, priority: 100 };
       case "confront_bird_gang":
-        return { id: "quest-bird-gang", label: "Bird Gang", kind: "interact", position: target, priority: 100 };
+        return null;
       default:
         return null;
     }
@@ -717,10 +731,6 @@ async function start(): Promise<void> {
     const targets: WorldActionTarget[] = [];
     const questTarget = getQuestActionTarget();
     if (questTarget) targets.push(questTarget);
-    if (phase === "day") {
-      targets.push({ id: "brutus", label: "Brutus", kind: "interact", position: companion.position, priority: 20 });
-    }
-
     if (activeMap.id === "home") {
       const fridge = interactionCenter(activeMap, "interaction_refrigerator");
       const bed = interactionCenter(activeMap, "interaction_bed");
@@ -753,6 +763,7 @@ async function start(): Promise<void> {
       button.disabled = busy || storyBusy || menuOpen || !target;
     }
     updateCompanionActionMenu();
+    brutusActionEntry.disabled = busy || storyBusy || menuOpen || phase !== "day" || distance(player.position, companion.position) > INTERACTION_RADIUS + 18;
   }
 
   function updateCompanionActionMenu(): void {
@@ -774,11 +785,6 @@ async function start(): Promise<void> {
       setMessage(`${WORLD_ACTION_LABELS[kind]} unavailable.`);
       return;
     }
-    if (kind === "interact" && (target.id === "brutus" || target.id === "quest-brutus")) {
-      openCompanionActionMenu();
-      return;
-    }
-
     closeActionMenu();
 
     if (target.priority === 100) {
@@ -806,6 +812,36 @@ async function start(): Promise<void> {
       return;
     }
     setMessage(`${WORLD_ACTION_LABELS[kind]}: ${target.label}`);
+  }
+
+  async function activateObjectiveMarker(): Promise<void> {
+    if (!canUseInput()) return;
+    const target = getQuestTargetPosition();
+    if (!canActivateObjectiveMarker(player.position, target, INTERACTION_RADIUS)) {
+      setMessage("Move closer to interact.");
+      return;
+    }
+    closeActionMenu();
+    await handleQuestInteraction();
+  }
+
+  function updateObjectiveMarker(): void {
+    const target = getQuestTargetPosition();
+    if (!target) {
+      objectiveMarker.hidden = true;
+      return;
+    }
+    const logicalX = target.x - lastCamera.x;
+    const logicalY = target.y - lastCamera.y - 32;
+    if (logicalX < 0 || logicalY < 0 || logicalX > viewport.width || logicalY > viewport.height) {
+      objectiveMarker.hidden = true;
+      return;
+    }
+    const canvasRect = canvas.getBoundingClientRect();
+    objectiveMarker.hidden = false;
+    objectiveMarker.style.left = `${canvasRect.left + (logicalX / viewport.width) * canvasRect.width}px`;
+    objectiveMarker.style.top = `${canvasRect.top + (logicalY / viewport.height) * canvasRect.height}px`;
+    objectiveMarker.disabled = !canActivateObjectiveMarker(player.position, target, INTERACTION_RADIUS) || !canUseInput();
   }
 
   async function runCompanionAction(action: CompanionActionName): Promise<void> {
@@ -1420,6 +1456,7 @@ async function start(): Promise<void> {
     for (const button of worldActionButtons) {
       button.disabled = busy || storyBusy || menuOpen || Boolean(battleState) || button.dataset.available !== "true";
     }
+    brutusActionEntry.disabled = uiBlocked || phase !== "day" || distance(player.position, companion.position) > INTERACTION_RADIUS + 18;
     updateCompanionActionMenu();
   }
 
@@ -1563,6 +1600,7 @@ async function start(): Promise<void> {
     }
 
     lastCamera = clampCamera(player.position, { width: activeMap.width, height: activeMap.height }, { width: viewport.width, height: viewport.height });
+    updateObjectiveMarker();
     updateWorldBubble(now);
     const foodPropPosition = phase === "day" ? getFeedingPropPosition(companion, player, characters.interactions) : null;
     const toyPropPosition = phase === "day" ? getFetchToyPosition(companion, characters.interactions) : null;
@@ -1579,8 +1617,7 @@ async function start(): Promise<void> {
       inputState: input.getTouchState(),
       debugEnabled,
       debugText: `${activeMap.id} | ${phase} | ${quest.stage} | camera ${lastCamera.x.toFixed(0)},${lastCamera.y.toFixed(0)} | logical ${viewport.width}×360 @${viewport.outputScale}×`,
-      actors: getActors(),
-      questMarker: getQuestTargetPosition()
+      actors: getActors()
     });
     updateHud();
     requestAnimationFrame(frame);

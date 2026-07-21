@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeWorldAction, getAvailableWorldActions } from "./interactionSystem";
+import { canActivateObjectiveMarker, describeWorldAction, getAvailableWorldActions } from "./interactionSystem";
 
 describe("world action context system", () => {
   it("selects the nearest available target for each action kind", () => {
@@ -8,13 +8,14 @@ describe("world action context system", () => {
       [
         { id: "far-chat", label: "Far NPC", kind: "chat", position: { x: 50, y: 0 } },
         { id: "near-chat", label: "Near NPC", kind: "chat", position: { x: 20, y: 0 } },
-        { id: "fridge", label: "Fridge", kind: "use", position: { x: 10, y: 0 } }
+        { id: "fridge", label: "Fridge", kind: "use", position: { x: 10, y: 0 } },
+        { id: "sword", label: "Bush Sword", kind: "pickup", position: { x: 30, y: 0 } }
       ],
       60
     );
     expect(actions.chat?.id).toBe("near-chat");
     expect(actions.use?.id).toBe("fridge");
-    expect(actions.interact).toBeNull();
+    expect(actions.pickup?.id).toBe("sword");
   });
 
   it("honors explicit priority before distance", () => {
@@ -33,5 +34,11 @@ describe("world action context system", () => {
     expect(describeWorldAction(null, "pickup")).toBe("Pick Up unavailable");
     expect(describeWorldAction({ id: "sword", label: "Bush Sword", kind: "pickup", position: { x: 0, y: 0 } }, "pickup"))
       .toBe("Pick Up: Bush Sword");
+  });
+
+  it("activates the objective marker only while its target is in range", () => {
+    expect(canActivateObjectiveMarker({ x: 10, y: 10 }, { x: 68, y: 10 }, 58)).toBe(true);
+    expect(canActivateObjectiveMarker({ x: 10, y: 10 }, { x: 69, y: 10 }, 58)).toBe(false);
+    expect(canActivateObjectiveMarker({ x: 10, y: 10 }, null, 58)).toBe(false);
   });
 });

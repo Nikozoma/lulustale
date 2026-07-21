@@ -27,7 +27,6 @@ export type FoundationRenderState = {
   debugEnabled: boolean;
   debugText: string;
   actors: WorldActorRenderState[];
-  questMarker: WorldPoint | null;
 };
 
 type RenderableEntity = { y: number; draw: () => void };
@@ -79,9 +78,6 @@ export class FoundationRenderer {
       ...(state.companionVisible ? [state.companion.position] : []),
       ...state.actors.map((actor) => actor.position)
     ]);
-    if (state.questMarker) {
-      this.drawQuestMarker(state.questMarker, performance.now() / 1000);
-    }
     if (state.debugEnabled) {
       this.drawDebug(state, camera);
     }
@@ -95,18 +91,6 @@ export class FoundationRenderer {
 
   private drawWorldActor(actor: WorldActorRenderState): void {
     this.drawAnimation(actor.definition, actor.facing, actor.animationTime, actor.frameSeconds, actor.position);
-  }
-
-  private drawQuestMarker(position: WorldPoint, timeSeconds: number): void {
-    const bob = Math.round(Math.sin(timeSeconds * 1.5) * 3);
-    const x = Math.round(position.x);
-    const y = Math.round(position.y - 32 + bob);
-    this.ctx.save();
-    this.ctx.font = "22px ui-sans-serif, system-ui, sans-serif";
-    this.ctx.textAlign = "center";
-    this.ctx.textBaseline = "middle";
-    this.ctx.fillText("❕", x, y);
-    this.ctx.restore();
   }
 
   private drawPlayer(player: PlayerState): void {

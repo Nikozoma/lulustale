@@ -10,6 +10,7 @@ import {
   getFeedingPropPosition,
   getFetchToyPosition,
   resetCompanionForMap,
+  restoreCompanionCommandState,
   updateCompanion
 } from "./companion";
 import { pointInRect, type FoundationSemantic, type FoundationVisual, type RuntimeMap } from "./foundation";
@@ -130,6 +131,19 @@ describe("daytime Brutus companion subsystem", () => {
     for (let index = 0; index < 8; index += 1) updateCompanion(companion, player, 0.1, map, interactions);
     expect(companion.mode).toBe("follow");
     expect(companion.commandPose).toBeNull();
+  });
+
+  it.each([
+    ["follow", null, null],
+    ["stay", "sit", "sit"],
+    ["stay", "lay", "lay_rest"],
+    ["stay", undefined, "sit"]
+  ] as const)("restores saved %s / %s command state at startup", (mode, commandPose, expectedAction) => {
+    const companion = createCompanion({ x: 400, y: 442 }, "up");
+    restoreCompanionCommandState(companion, { mode, commandPose });
+    expect(companion.mode).toBe(mode);
+    expect(companion.commandPose).toBe(mode === "follow" ? null : commandPose === "lay" ? "lay" : "sit");
+    expect(companion.action).toBe(expectedAction);
   });
 
   it("runs a complete fetch cycle with the separate toy prop", () => {

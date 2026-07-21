@@ -6,6 +6,7 @@ describe("game shell mobile-first UI", () => {
   it("boots through the Lulu's Tale title screen before gameplay", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
     const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
 
     expect(html).toContain('id="title-screen"');
     expect(html).toContain('id="title-play-button"');
@@ -14,6 +15,20 @@ describe("game shell mobile-first UI", () => {
     expect(main).toContain('await start();');
     expect(main).toContain('const restoredSave = readAutosave();');
     expect(main).not.toContain('start().catch');
+    expect(html).toContain('class="title-art-frame"');
+    expect(css).toContain("width: min(100vw, calc(100vh * 16 / 9))");
+    expect(css).toContain("aspect-ratio: 16 / 9");
+    expect(css).toContain("object-fit: contain");
+    expect(css).not.toContain("object-fit: cover");
+  });
+
+  it.each([
+    [640, 360, 640],
+    [760, 360, 640]
+  ])("contains the approved 16:9 title artwork without cropping at %sx%s", (width, height, expectedWidth) => {
+    const artwork = readFileSync(resolve(process.cwd(), "public/assets/ui/lulus-tale-title-screen.png"));
+    expect(readJpegDimensions(artwork)).toEqual([1536, 864]);
+    expect(Math.min(width, height * (16 / 9))).toBe(expectedWidth);
   });
 
   it("ships the batch-1 menu and quest tracker foundation", () => {
@@ -34,8 +49,10 @@ describe("game shell mobile-first UI", () => {
     expect(html).toContain('id="world-action-menu"');
     expect(html).toContain('data-world-action="use"');
     expect(html).toContain('data-world-action="chat"');
-    expect(html).toContain('data-world-action="interact"');
+    expect(html).not.toContain('data-world-action="interact"');
     expect(html).toContain('data-world-action="pickup"');
+    expect(html).toContain('id="objective-marker"');
+    expect(html).toContain('data-open-companion');
     expect(html).toContain('id="world-chat-bubble"');
     expect(html).not.toContain("interaction-prompt");
   });
@@ -52,10 +69,16 @@ describe("game shell mobile-first UI", () => {
     expect(html).toContain('data-companion-action="fetch"');
   });
 
-  it("uses the requested simple quest marker icon", () => {
-    const renderer = readFileSync(resolve(process.cwd(), "src/game/renderer.ts"), "utf8");
-    expect(renderer).toContain('fillText("❕"');
-    expect(renderer).not.toContain('fillText("!"');
+  it("uses the visible objective marker as a phone-friendly interaction control", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    expect(html).toContain('id="objective-marker"');
+    expect(html).toContain("❕");
+    expect(main).toContain('objectiveMarker.addEventListener("click"');
+    expect(main).toContain("canActivateObjectiveMarker(player.position, target, INTERACTION_RADIUS)");
+    expect(css).toContain("width: 52px");
+    expect(css).toContain("height: 52px");
   });
   it("ships the batch-3 turn-based battle shell", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
@@ -68,3 +91,20 @@ describe("game shell mobile-first UI", () => {
   });
 
 });
+
+function readJpegDimensions(jpeg: Buffer): readonly [number, number] {
+  let offset = 2;
+  while (offset < jpeg.length) {
+    while (jpeg[offset] !== 0xff && offset < jpeg.length) offset += 1;
+    while (jpeg[offset] === 0xff) offset += 1;
+    const marker = jpeg[offset];
+    offset += 1;
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    const length = jpeg.readUInt16BE(offset);
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      return [jpeg.readUInt16BE(offset + 5), jpeg.readUInt16BE(offset + 3)];
+    }
+    offset += length;
+  }
+  throw new Error("Title artwork does not contain JPEG dimensions.");
+}

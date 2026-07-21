@@ -13,8 +13,8 @@
     }
   },
   "art_source": {
-    "package": "Lulus_Tale_Native_Map_Artwork_Full_v1_5.zip",
-    "package_sha256": "877b4ff37ef1dc08d1a283f2a40e03ecd05c2635dbb1e47cfee2aa0a9bda3fb0"
+    "package": "Lulus_Tale_Native_Map_Artwork_HD_v1.zip",
+    "authority": "RUNTIME_AUTHORITY_MANIFEST.json"
   },
   "foreground_layers": [
     {
@@ -27,8 +27,8 @@
       },
       "day_asset": "production/overworld/building_foreground_day.png",
       "night_asset": "production/overworld/building_foreground_night.png",
-      "day_sha256": "7460bf16bf917bc93c1a6f57839727c2b6f4c4f7753cd16c0ef676504a2f66f3",
-      "night_sha256": "6bb8413852a247080dee447ccc66c66cc2bc5cec8291e7fa900ad8b2e1b01a9f",
+      "day_sha256": "f75014c43031f67ca252ba00d6cd3eea9ba5234733830b36bdb04ec6e0df9443",
+      "night_sha256": "29a71058e4f5c745f850252097c081ffe5e2c163031a8732d7c47208983fa234",
       "alpha_mask_sha256": "98cf147e7af687d55ba5fed76d66aaaa175a61a458261305cf7c51a44658cf43",
       "night_alpha_mask_sha256": "98cf147e7af687d55ba5fed76d66aaaa175a61a458261305cf7c51a44658cf43",
       "alpha_geometry_identical_day_night": true,
@@ -101,7 +101,7 @@
         }
       ],
       "asset": "production/overworld/building_foreground_day.png",
-      "sha256": "7460bf16bf917bc93c1a6f57839727c2b6f4c4f7753cd16c0ef676504a2f66f3"
+      "sha256": "f75014c43031f67ca252ba00d6cd3eea9ba5234733830b36bdb04ec6e0df9443"
     },
     {
       "id": "tree_canopy_foreground",
@@ -113,8 +113,8 @@
       },
       "day_asset": "production/overworld/tree_canopy_foreground_day.png",
       "night_asset": "production/overworld/tree_canopy_foreground_night.png",
-      "day_sha256": "612dfd4766dc5cdb8f257d00b57a66b317143d16921404d9e75c363626a200fc",
-      "night_sha256": "478752c86301fbb23c2c7228e9d52e63e3104c2f30c60ff9183833833f732c33",
+      "day_sha256": "feff04299f57d3e1dad232e7fde79449fbe0f1becafdd6532e062a64caac63a8",
+      "night_sha256": "28b1979a5908bde6e315da21717ca691bf829f2c95513dc6d660eb2b71022d3a",
       "alpha_mask_sha256": "e75f4ad430d13849c69310ed662d17a062d6a1b7f760aaed614a3a8dfd583215",
       "night_alpha_mask_sha256": "e75f4ad430d13849c69310ed662d17a062d6a1b7f760aaed614a3a8dfd583215",
       "alpha_geometry_identical_day_night": true,
@@ -459,14 +459,14 @@
         }
       ],
       "asset": "production/overworld/tree_canopy_foreground_day.png",
-      "sha256": "612dfd4766dc5cdb8f257d00b57a66b317143d16921404d9e75c363626a200fc"
+      "sha256": "feff04299f57d3e1dad232e7fde79449fbe0f1becafdd6532e062a64caac63a8"
     }
   ],
   "alignment_contract": "Base and foreground layers use canvas origin (0,0); day/night share semantic.json exactly.",
   "variant": "day",
   "base_layer": {
     "asset": "production/overworld/day_base.png",
-    "sha256": "262c91c2a6ccb48e802ffac1be0054308c7e727eb0a5f9c34b2be707f741dc27",
+    "sha256": "22e5c4ebeca605c7abf4492a4a0d8bc593c05816a55ffdf26be24616f3cdedc1",
     "origin_px": {
       "x": 0,
       "y": 0

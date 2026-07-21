@@ -1,6 +1,6 @@
 import type { WorldPoint } from "./foundation";
 
-export type WorldActionKind = "use" | "chat" | "interact" | "pickup";
+export type WorldActionKind = "use" | "chat" | "pickup";
 
 export type WorldActionTarget = {
   id: string;
@@ -12,12 +12,11 @@ export type WorldActionTarget = {
 
 export type WorldActionAvailability = Record<WorldActionKind, WorldActionTarget | null>;
 
-export const WORLD_ACTION_KINDS: WorldActionKind[] = ["use", "chat", "interact", "pickup"];
+export const WORLD_ACTION_KINDS: WorldActionKind[] = ["use", "chat", "pickup"];
 
 export const WORLD_ACTION_LABELS: Record<WorldActionKind, string> = {
   use: "Use",
   chat: "Chat",
-  interact: "Interact",
   pickup: "Pick Up"
 };
 
@@ -26,7 +25,7 @@ export function getAvailableWorldActions(
   targets: readonly WorldActionTarget[],
   radius: number
 ): WorldActionAvailability {
-  const result: WorldActionAvailability = { use: null, chat: null, interact: null, pickup: null };
+  const result: WorldActionAvailability = { use: null, chat: null, pickup: null };
   const nearby = targets
     .map((target) => ({ target, distance: pointDistance(playerPosition, target.position) }))
     .filter(({ distance }) => distance <= radius)
@@ -39,6 +38,14 @@ export function getAvailableWorldActions(
     if (!result[target.kind]) result[target.kind] = target;
   }
   return result;
+}
+
+export function canActivateObjectiveMarker(
+  playerPosition: WorldPoint,
+  targetPosition: WorldPoint | null,
+  radius: number
+): boolean {
+  return targetPosition !== null && pointDistance(playerPosition, targetPosition) <= radius;
 }
 
 export function describeWorldAction(target: WorldActionTarget | null, kind: WorldActionKind): string {
