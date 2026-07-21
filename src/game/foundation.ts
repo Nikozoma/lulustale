@@ -73,6 +73,7 @@ export type ForegroundLayer = {
   z_index: number;
   asset: string;
   sha256: string;
+  occlusion_opacity?: number;
   alpha_components: AlphaComponent[];
 };
 

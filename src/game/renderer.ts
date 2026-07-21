@@ -208,7 +208,10 @@ export class FoundationRenderer {
           continue;
         }
         const box = component.pixel_bbox;
+        this.ctx.save();
+        this.ctx.globalAlpha = foreground.definition.occlusion_opacity ?? 1;
         this.ctx.drawImage(foreground.image, box.x, box.y, box.width, box.height, box.x, box.y, box.width, box.height);
+        this.ctx.restore();
       }
     }
   }

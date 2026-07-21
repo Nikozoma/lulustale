@@ -379,13 +379,13 @@
         "x": 16,
         "y": 45,
         "width": 24,
-        "height": 2
+        "height": 3
       },
       "pixel_rect": {
         "x": 512,
         "y": 1440,
         "width": 768,
-        "height": 64
+        "height": 96
       },
       "category": "hedge"
     },
@@ -547,68 +547,27 @@
       "category": "hedge"
     },
     {
-      "id": "apartment_courtyard_lawn_west",
+      "id": "apartment_courtyard_planter_west",
       "shape": "rect",
       "tile_rect": {
-        "x": 52,
+        "x": 64,
         "y": 41,
-        "width": 8,
-        "height": 3
+        "width": 7,
+        "height": 4
       },
       "pixel_rect": {
-        "x": 1664,
+        "x": 2048,
         "y": 1312,
-        "width": 256,
-        "height": 96
+        "width": 224,
+        "height": 128
       },
-      "category": "hedge"
-    },
-    {
-      "id": "apartment_courtyard_lawn_center_west",
-      "shape": "rect",
-      "tile_rect": {
-        "x": 61,
-        "y": 41,
-        "width": 4,
-        "height": 3
-      },
-      "pixel_rect": {
-        "x": 1952,
-        "y": 1312,
-        "width": 128,
-        "height": 96
-      },
-      "category": "hedge"
-    },
-    {
-      "id": "apartment_courtyard_lawn_center_east",
-      "shape": "rect",
-      "tile_rect": {
-        "x": 67,
-        "y": 41,
-        "width": 4,
-        "height": 3
-      },
-      "pixel_rect": {
-        "x": 2144,
-        "y": 1312,
-        "width": 128,
-        "height": 96
-      },
-      "category": "hedge"
+      "category": "landscaping"
     },
     {
       "id": "apartment_middle_front_landscaping_east",
       "shape": "rect",
       "tile_rect": { "x": 73, "y": 38, "width": 7, "height": 1 },
       "pixel_rect": { "x": 2336, "y": 1216, "width": 224, "height": 32 },
-      "category": "landscaping"
-    },
-    {
-      "id": "apartment_courtyard_lawn_east",
-      "shape": "rect",
-      "tile_rect": { "x": 73, "y": 41, "width": 7, "height": 3 },
-      "pixel_rect": { "x": 2336, "y": 1312, "width": 224, "height": 96 },
       "category": "landscaping"
     },
     {
@@ -649,8 +608,8 @@
     {
       "id": "charles_service_carts",
       "shape": "rect",
-      "tile_rect": { "x": 31, "y": 39, "width": 3, "height": 5 },
-      "pixel_rect": { "x": 992, "y": 1248, "width": 96, "height": 160 },
+      "tile_rect": { "x": 32, "y": 39, "width": 3, "height": 5 },
+      "pixel_rect": { "x": 1024, "y": 1248, "width": 96, "height": 160 },
       "category": "object"
     },
     {
@@ -663,64 +622,64 @@
     {
       "id": "apartment_parked_car_west_middle",
       "shape": "rect",
-      "tile_rect": { "x": 48, "y": 36, "width": 3, "height": 4 },
-      "pixel_rect": { "x": 1536, "y": 1152, "width": 96, "height": 128 },
+      "tile_rect": { "x": 48, "y": 35, "width": 3, "height": 4 },
+      "pixel_rect": { "x": 1536, "y": 1120, "width": 96, "height": 128 },
       "category": "vehicle"
     },
     {
       "id": "apartment_parked_car_east_north",
       "shape": "rect",
-      "tile_rect": { "x": 82, "y": 31, "width": 4, "height": 4 },
-      "pixel_rect": { "x": 2624, "y": 992, "width": 128, "height": 128 },
+      "tile_rect": { "x": 82, "y": 31, "width": 3, "height": 4 },
+      "pixel_rect": { "x": 2624, "y": 992, "width": 96, "height": 128 },
       "category": "vehicle"
     },
     {
       "id": "apartment_parked_car_east_middle",
       "shape": "rect",
-      "tile_rect": { "x": 82, "y": 37, "width": 4, "height": 4 },
-      "pixel_rect": { "x": 2624, "y": 1184, "width": 128, "height": 128 },
+      "tile_rect": { "x": 82, "y": 37, "width": 3, "height": 4 },
+      "pixel_rect": { "x": 2624, "y": 1184, "width": 96, "height": 128 },
       "category": "vehicle"
     },
     {
       "id": "apartment_parked_car_east_south",
       "shape": "rect",
-      "tile_rect": { "x": 82, "y": 47, "width": 4, "height": 4 },
-      "pixel_rect": { "x": 2624, "y": 1504, "width": 128, "height": 128 },
+      "tile_rect": { "x": 82, "y": 47, "width": 3, "height": 4 },
+      "pixel_rect": { "x": 2624, "y": 1504, "width": 96, "height": 128 },
       "category": "vehicle"
     },
     {
       "id": "division_traffic_light",
       "shape": "rect",
-      "tile_rect": { "x": 3, "y": 9, "width": 2, "height": 5 },
-      "pixel_rect": { "x": 96, "y": 288, "width": 64, "height": 160 },
+      "tile_rect": { "x": 4, "y": 10, "width": 1, "height": 4 },
+      "pixel_rect": { "x": 128, "y": 320, "width": 32, "height": 128 },
       "category": "street_furniture"
     },
     {
       "id": "north_lawn_tree",
       "shape": "rect",
-      "tile_rect": { "x": 15, "y": 1, "width": 3, "height": 4 },
-      "pixel_rect": { "x": 480, "y": 32, "width": 96, "height": 128 },
+      "tile_rect": { "x": 16, "y": 3, "width": 2, "height": 2 },
+      "pixel_rect": { "x": 512, "y": 96, "width": 64, "height": 64 },
       "category": "tree_trunk"
     },
     {
       "id": "north_lawn_bench",
       "shape": "rect",
-      "tile_rect": { "x": 56, "y": 1, "width": 3, "height": 3 },
-      "pixel_rect": { "x": 1792, "y": 32, "width": 96, "height": 96 },
+      "tile_rect": { "x": 56, "y": 2, "width": 3, "height": 2 },
+      "pixel_rect": { "x": 1792, "y": 64, "width": 96, "height": 64 },
       "category": "street_furniture"
     },
     {
       "id": "north_lawn_bin",
       "shape": "rect",
-      "tile_rect": { "x": 63, "y": 1, "width": 3, "height": 3 },
-      "pixel_rect": { "x": 2016, "y": 32, "width": 96, "height": 96 },
+      "tile_rect": { "x": 63, "y": 2, "width": 3, "height": 2 },
+      "pixel_rect": { "x": 2016, "y": 64, "width": 96, "height": 64 },
       "category": "street_furniture"
     },
     {
       "id": "north_lawn_east_tree",
       "shape": "rect",
-      "tile_rect": { "x": 83, "y": 1, "width": 3, "height": 4 },
-      "pixel_rect": { "x": 2656, "y": 32, "width": 96, "height": 128 },
+      "tile_rect": { "x": 84, "y": 3, "width": 2, "height": 2 },
+      "pixel_rect": { "x": 2688, "y": 96, "width": 64, "height": 64 },
       "category": "tree_trunk"
     },
     {
@@ -779,13 +738,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 90,
-        "y": 61,
+        "y": 66,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 2880,
-        "y": 1952,
+        "y": 2112,
         "width": 64,
         "height": 64
       },
@@ -796,13 +755,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 90,
-        "y": 52,
+        "y": 57,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 2880,
-        "y": 1664,
+        "y": 1824,
         "width": 64,
         "height": 64
       },
@@ -813,13 +772,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 90,
-        "y": 43,
+        "y": 49,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 2880,
-        "y": 1376,
+        "y": 1568,
         "width": 64,
         "height": 64
       },
@@ -830,13 +789,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 90,
-        "y": 34,
+        "y": 40,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 2880,
-        "y": 1088,
+        "y": 1280,
         "width": 64,
         "height": 64
       },
@@ -847,13 +806,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 90,
-        "y": 16,
+        "y": 19,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 2880,
-        "y": 512,
+        "y": 608,
         "width": 64,
         "height": 64
       },
@@ -863,14 +822,14 @@
       "id": "tree_trunk_south_east",
       "shape": "rect",
       "tile_rect": {
-        "x": 82,
-        "y": 62,
+        "x": 83,
+        "y": 65,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 2624,
-        "y": 1984,
+        "x": 2656,
+        "y": 2080,
         "width": 64,
         "height": 64
       },
@@ -880,14 +839,14 @@
       "id": "tree_trunk_apartment_east",
       "shape": "rect",
       "tile_rect": {
-        "x": 79,
-        "y": 52,
+        "x": 80,
+        "y": 55,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 2528,
-        "y": 1664,
+        "x": 2560,
+        "y": 1760,
         "width": 64,
         "height": 64
       },
@@ -897,14 +856,14 @@
       "id": "tree_trunk_division_east",
       "shape": "rect",
       "tile_rect": {
-        "x": 79,
-        "y": 12,
+        "x": 83,
+        "y": 18,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 2528,
-        "y": 384,
+        "x": 2656,
+        "y": 576,
         "width": 64,
         "height": 64
       },
@@ -914,14 +873,14 @@
       "id": "tree_trunk_south_mid",
       "shape": "rect",
       "tile_rect": {
-        "x": 48,
-        "y": 62,
+        "x": 49,
+        "y": 65,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 1536,
-        "y": 1984,
+        "x": 1568,
+        "y": 2080,
         "width": 64,
         "height": 64
       },
@@ -931,14 +890,14 @@
       "id": "tree_trunk_south_west",
       "shape": "rect",
       "tile_rect": {
-        "x": 39,
-        "y": 62,
+        "x": 40,
+        "y": 65,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 1248,
-        "y": 1984,
+        "x": 1280,
+        "y": 2080,
         "width": 64,
         "height": 64
       },
@@ -949,13 +908,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 31,
-        "y": 45,
+        "y": 48,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 992,
-        "y": 1440,
+        "y": 1536,
         "width": 64,
         "height": 64
       },
@@ -966,13 +925,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 16,
-        "y": 14,
+        "y": 17,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 512,
-        "y": 448,
+        "y": 544,
         "width": 64,
         "height": 64
       },
@@ -982,14 +941,14 @@
       "id": "tree_trunk_park_south",
       "shape": "rect",
       "tile_rect": {
-        "x": 14,
-        "y": 56,
+        "x": 15,
+        "y": 57,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 448,
-        "y": 1792,
+        "x": 480,
+        "y": 1824,
         "width": 64,
         "height": 64
       },
@@ -999,14 +958,14 @@
       "id": "tree_trunk_park_north_01",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
-        "y": 46,
+        "x": 14,
+        "y": 48,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 416,
-        "y": 1472,
+        "x": 448,
+        "y": 1536,
         "width": 64,
         "height": 64
       },
@@ -1016,14 +975,14 @@
       "id": "tree_trunk_park_north_02",
       "shape": "rect",
       "tile_rect": {
-        "x": 10,
-        "y": 46,
+        "x": 21,
+        "y": 48,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 320,
-        "y": 1472,
+        "x": 672,
+        "y": 1536,
         "width": 64,
         "height": 64
       },
@@ -1034,13 +993,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 62,
+        "y": 65,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 64,
-        "y": 1984,
+        "y": 2080,
         "width": 64,
         "height": 64
       },
@@ -1051,30 +1010,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 45,
+        "y": 48,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 64,
-        "y": 1440,
-        "width": 64,
-        "height": 64
-      },
-      "category": "tree_trunk"
-    },
-    {
-      "id": "tree_trunk_west_03",
-      "shape": "rect",
-      "tile_rect": {
-        "x": 2,
-        "y": 36,
-        "width": 2,
-        "height": 2
-      },
-      "pixel_rect": {
-        "x": 64,
-        "y": 1152,
+        "y": 1536,
         "width": 64,
         "height": 64
       },
@@ -1085,13 +1027,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 27,
+        "y": 35,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 64,
-        "y": 864,
+        "y": 1120,
         "width": 64,
         "height": 64
       },
@@ -1102,13 +1044,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 18,
+        "y": 26,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
         "x": 64,
-        "y": 576,
+        "y": 832,
         "width": 64,
         "height": 64
       },
@@ -1118,18 +1060,88 @@
       "id": "tree_trunk_courtyard_cluster",
       "shape": "rect",
       "tile_rect": {
-        "x": 45,
-        "y": 58,
+        "x": 46,
+        "y": 59,
         "width": 2,
         "height": 2
       },
       "pixel_rect": {
-        "x": 1440,
-        "y": 1856,
+        "x": 1472,
+        "y": 1888,
         "width": 64,
         "height": 64
       },
       "category": "tree_trunk"
+    },
+    {
+      "id": "north_lawn_shrub_west",
+      "shape": "rect",
+      "tile_rect": { "x": 26, "y": 3, "width": 1, "height": 1 },
+      "pixel_rect": { "x": 832, "y": 96, "width": 32, "height": 32 },
+      "category": "shrub"
+    },
+    {
+      "id": "north_lawn_shrub_center",
+      "shape": "rect",
+      "tile_rect": { "x": 78, "y": 3, "width": 1, "height": 1 },
+      "pixel_rect": { "x": 2496, "y": 96, "width": 32, "height": 32 },
+      "category": "shrub"
+    },
+    {
+      "id": "north_lawn_shrub_east",
+      "shape": "rect",
+      "tile_rect": { "x": 95, "y": 3, "width": 1, "height": 1 },
+      "pixel_rect": { "x": 3040, "y": 96, "width": 32, "height": 32 },
+      "category": "shrub"
+    },
+    {
+      "id": "charles_sign_hedge_west",
+      "shape": "rect",
+      "tile_rect": { "x": 16, "y": 52, "width": 3, "height": 8 },
+      "pixel_rect": { "x": 512, "y": 1664, "width": 96, "height": 256 },
+      "category": "hedge"
+    },
+    {
+      "id": "charles_sign_hedge_east",
+      "shape": "rect",
+      "tile_rect": { "x": 27, "y": 52, "width": 3, "height": 8 },
+      "pixel_rect": { "x": 864, "y": 1664, "width": 96, "height": 256 },
+      "category": "hedge"
+    },
+    {
+      "id": "charles_sign_hedge_south",
+      "shape": "rect",
+      "tile_rect": { "x": 19, "y": 57, "width": 8, "height": 3 },
+      "pixel_rect": { "x": 608, "y": 1824, "width": 256, "height": 96 },
+      "category": "hedge"
+    },
+    {
+      "id": "lower_park_shrub_west",
+      "shape": "rect",
+      "tile_rect": { "x": 19, "y": 65, "width": 1, "height": 1 },
+      "pixel_rect": { "x": 608, "y": 2080, "width": 32, "height": 32 },
+      "category": "shrub"
+    },
+    {
+      "id": "lower_park_shrub_center",
+      "shape": "rect",
+      "tile_rect": { "x": 37, "y": 56, "width": 1, "height": 1 },
+      "pixel_rect": { "x": 1184, "y": 1792, "width": 32, "height": 32 },
+      "category": "shrub"
+    },
+    {
+      "id": "apartment_east_boundary_hedge",
+      "shape": "rect",
+      "tile_rect": { "x": 92, "y": 14, "width": 4, "height": 54 },
+      "pixel_rect": { "x": 2944, "y": 448, "width": 128, "height": 1728 },
+      "category": "hedge"
+    },
+    {
+      "id": "southeast_boundary_fence",
+      "shape": "rect",
+      "tile_rect": { "x": 77, "y": 64, "width": 19, "height": 2 },
+      "pixel_rect": { "x": 2464, "y": 2048, "width": 608, "height": 64 },
+      "category": "fence"
     }
   ],
   "passable_overrides": [
@@ -1175,15 +1187,15 @@
       "id": "crosswalk_division_west_property",
       "shape": "rect",
       "tile_rect": {
-        "x": 22,
+        "x": 25,
         "y": 12,
-        "width": 10,
+        "width": 7,
         "height": 5
       },
       "pixel_rect": {
-        "x": 704,
+        "x": 800,
         "y": 384,
-        "width": 320,
+        "width": 224,
         "height": 160
       },
       "purpose": "crosswalk"
@@ -1192,15 +1204,15 @@
       "id": "crosswalk_division_center",
       "shape": "rect",
       "tile_rect": {
-        "x": 42,
+        "x": 44,
         "y": 12,
-        "width": 9,
+        "width": 7,
         "height": 5
       },
       "pixel_rect": {
-        "x": 1344,
+        "x": 1408,
         "y": 384,
-        "width": 288,
+        "width": 224,
         "height": 160
       },
       "purpose": "crosswalk"
@@ -1209,15 +1221,15 @@
       "id": "crosswalk_division_east",
       "shape": "rect",
       "tile_rect": {
-        "x": 83,
+        "x": 85,
         "y": 12,
-        "width": 12,
+        "width": 5,
         "height": 5
       },
       "pixel_rect": {
-        "x": 2656,
+        "x": 2720,
         "y": 384,
-        "width": 384,
+        "width": 160,
         "height": 160
       },
       "purpose": "crosswalk"

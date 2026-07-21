@@ -14,8 +14,8 @@
   "map_assets_sha256": {
     "overworld/day_base.png": "22e5c4ebeca605c7abf4492a4a0d8bc593c05816a55ffdf26be24616f3cdedc1",
     "overworld/night_base.png": "7bf096dec8cad4d0f57da5843cde8fca5bc405289f6665b9f888aa93803f07dc",
-    "overworld/building_foreground_day.png": "f75014c43031f67ca252ba00d6cd3eea9ba5234733830b36bdb04ec6e0df9443",
-    "overworld/building_foreground_night.png": "29a71058e4f5c745f850252097c081ffe5e2c163031a8732d7c47208983fa234",
+    "overworld/building_foreground_day.png": "d0e71604ff5e69ce77c315ec2ff54ab30e1eef9d22f12d890117c30cc8dde17b",
+    "overworld/building_foreground_night.png": "572897f9474e578e0f677f6219ded49311d647ae0554faa63e1a665efe602b35",
     "overworld/tree_canopy_foreground_day.png": "feff04299f57d3e1dad232e7fde79449fbe0f1becafdd6532e062a64caac63a8",
     "overworld/tree_canopy_foreground_night.png": "28b1979a5908bde6e315da21717ca691bf829f2c95513dc6d660eb2b71022d3a",
     "home/day_base.png": "ccad95ed6ccc4a7bab6a1ab0aef7606eeb9567ae4af19acf1e6bbfc123a8cc40",
