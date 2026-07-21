@@ -33,15 +33,15 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 15,
+        "y": 18,
         "width": 24,
-        "height": 23
+        "height": 20
       },
       "pixel_rect": {
         "x": 64,
-        "y": 480,
+        "y": 576,
         "width": 768,
-        "height": 736
+        "height": 640
       },
       "surface": "wood_floor"
     },
@@ -51,13 +51,13 @@
       "tile_rect": {
         "x": 13,
         "y": 2,
-        "width": 13,
+        "width": 12,
         "height": 12
       },
       "pixel_rect": {
         "x": 416,
         "y": 64,
-        "width": 416,
+        "width": 384,
         "height": 384
       },
       "surface": "wood_floor"
@@ -66,15 +66,15 @@
       "id": "walk_bedroom_connector",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
+        "x": 14,
         "y": 13,
-        "width": 5,
+        "width": 3,
         "height": 5
       },
       "pixel_rect": {
-        "x": 416,
+        "x": 448,
         "y": 416,
-        "width": 160,
+        "width": 96,
         "height": 160
       },
       "surface": "wood_floor"
@@ -85,13 +85,13 @@
       "tile_rect": {
         "x": 12,
         "y": 38,
-        "width": 5,
+        "width": 4,
         "height": 3
       },
       "pixel_rect": {
         "x": 384,
         "y": 1216,
-        "width": 160,
+        "width": 128,
         "height": 96
       },
       "surface": "threshold"
@@ -155,13 +155,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 24,
+        "y": 23,
         "width": 4,
         "height": 8
       },
       "pixel_rect": {
         "x": 64,
-        "y": 768,
+        "y": 736,
         "width": 128,
         "height": 256
       },
@@ -172,15 +172,15 @@
       "shape": "rect",
       "tile_rect": {
         "x": 5,
-        "y": 25,
-        "width": 3,
-        "height": 5
+        "y": 24,
+        "width": 4,
+        "height": 6
       },
       "pixel_rect": {
         "x": 160,
-        "y": 800,
-        "width": 96,
-        "height": 160
+        "y": 768,
+        "width": 128,
+        "height": 192
       },
       "category": "furniture"
     },
@@ -189,13 +189,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 10,
-        "y": 19,
+        "y": 18,
         "width": 3,
         "height": 9
       },
       "pixel_rect": {
         "x": 320,
-        "y": 608,
+        "y": 576,
         "width": 96,
         "height": 288
       },
@@ -223,13 +223,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 20,
-        "y": 22,
+        "y": 21,
         "width": 6,
         "height": 6
       },
       "pixel_rect": {
         "x": 640,
-        "y": 704,
+        "y": 672,
         "width": 192,
         "height": 192
       },
@@ -237,19 +237,36 @@
       "object_id": "object_refrigerator"
     },
     {
-      "id": "right_pantry",
+      "id": "kitchen_lower_cabinets",
       "shape": "rect",
       "tile_rect": {
-        "x": 23,
-        "y": 29,
+        "x": 17,
+        "y": 21,
         "width": 3,
         "height": 6
       },
       "pixel_rect": {
-        "x": 736,
-        "y": 928,
+        "x": 544,
+        "y": 672,
         "width": 96,
         "height": 192
+      },
+      "category": "counter"
+    },
+    {
+      "id": "right_pantry",
+      "shape": "rect",
+      "tile_rect": {
+        "x": 23,
+        "y": 28,
+        "width": 3,
+        "height": 9
+      },
+      "pixel_rect": {
+        "x": 736,
+        "y": 896,
+        "width": 96,
+        "height": 288
       },
       "category": "furniture"
     },
@@ -257,16 +274,16 @@
       "id": "dining_set",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
-        "y": 33,
-        "width": 7,
-        "height": 5
+        "x": 11,
+        "y": 31,
+        "width": 8,
+        "height": 6
       },
       "pixel_rect": {
-        "x": 416,
-        "y": 1056,
-        "width": 224,
-        "height": 160
+        "x": 352,
+        "y": 992,
+        "width": 256,
+        "height": 192
       },
       "category": "furniture"
     },
@@ -274,15 +291,15 @@
       "id": "dog_bed",
       "shape": "rect",
       "tile_rect": {
-        "x": 3,
+        "x": 2,
         "y": 35,
-        "width": 4,
+        "width": 3,
         "height": 3
       },
       "pixel_rect": {
-        "x": 96,
+        "x": 64,
         "y": 1120,
-        "width": 128,
+        "width": 96,
         "height": 96
       },
       "category": "pet_furniture"
@@ -344,15 +361,15 @@
       "id": "bottom_entry_clear",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
+        "x": 12,
         "y": 38,
-        "width": 3,
+        "width": 4,
         "height": 3
       },
       "pixel_rect": {
-        "x": 416,
+        "x": 384,
         "y": 1216,
-        "width": 96,
+        "width": 128,
         "height": 96
       },
       "purpose": "door_threshold"
@@ -420,13 +437,13 @@
       "shape": "rect",
       "tile_rect": {
         "x": 2,
-        "y": 24,
+        "y": 23,
         "width": 4,
         "height": 8
       },
       "pixel_rect": {
         "x": 64,
-        "y": 768,
+        "y": 736,
         "width": 128,
         "height": 256
       },
@@ -436,16 +453,16 @@
       "id": "object_dining_set",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
-        "y": 33,
-        "width": 7,
-        "height": 5
+        "x": 11,
+        "y": 31,
+        "width": 8,
+        "height": 6
       },
       "pixel_rect": {
-        "x": 416,
-        "y": 1056,
-        "width": 224,
-        "height": 160
+        "x": 352,
+        "y": 992,
+        "width": 256,
+        "height": 192
       },
       "category": "dining"
     }
@@ -455,19 +472,19 @@
       "id": "door_home_exit",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
-        "y": 39,
-        "width": 3,
-        "height": 2
+        "x": 12,
+        "y": 38,
+        "width": 4,
+        "height": 3
       },
       "pixel_rect": {
-        "x": 416,
-        "y": 1248,
-        "width": 96,
-        "height": 64
+        "x": 384,
+        "y": 1216,
+        "width": 128,
+        "height": 96
       },
       "structure_id": "structure_home_shell",
-      "clear_width_px": 96,
+      "clear_width_px": 128,
       "transition_id": "transition_home_to_overworld"
     }
   ],
@@ -476,16 +493,16 @@
       "id": "transition_home_to_overworld",
       "shape": "rect",
       "tile_rect": {
-        "x": 13,
-        "y": 39,
-        "width": 3,
-        "height": 2
+        "x": 12,
+        "y": 38,
+        "width": 4,
+        "height": 3
       },
       "pixel_rect": {
-        "x": 416,
-        "y": 1248,
-        "width": 96,
-        "height": 64
+        "x": 384,
+        "y": 1216,
+        "width": 128,
+        "height": 96
       },
       "target_map": "overworld",
       "target_transition_id": "transition_overworld_to_home",
@@ -564,21 +581,21 @@
       "id": "interaction_refrigerator",
       "shape": "rect",
       "tile_rect": {
-        "x": 22,
-        "y": 23,
-        "width": 1,
-        "height": 3
+        "x": 23,
+        "y": 27,
+        "width": 2,
+        "height": 1
       },
       "pixel_rect": {
-        "x": 704,
-        "y": 736,
-        "width": 32,
-        "height": 96
+        "x": 736,
+        "y": 864,
+        "width": 64,
+        "height": 32
       },
       "target_object_id": "object_refrigerator",
       "action": "refrigerator",
       "approach": "adjacent",
-      "facing": "east"
+      "facing": "north"
     }
   ],
   "event_regions": [],
@@ -670,7 +687,7 @@
     }
   ],
   "notes": [
-    "The bottom entrance and bedroom connector are explicit passable overrides.",
-    "Bed and refrigerator interactions are markers only; no gameplay logic is authored."
+    "The bottom entrance and bedroom connector are explicit passable overrides aligned to visible openings.",
+    "The refrigerator interaction is placed on the reachable floor band directly in front of the appliance."
   ]
 }

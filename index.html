@@ -8,7 +8,7 @@
   </head>
   <body>
     <main id="app">
-      <section id="title-screen" class="title-screen" aria-label="Lulu's Tale title screen">
+      <section id="title-screen" class="title-screen" aria-label="Lulu's Tale title screen" hidden aria-hidden="true">
         <div class="title-art-frame">
           <img class="title-screen-art" src="/assets/ui/lulus-tale-title-screen.png" alt="Lulu's Tale nighttime neighborhood title artwork" />
           <button id="title-play-button" class="title-play-hitbox" type="button" aria-label="Play Lulu's Tale"><span class="sr-only">Play</span></button>
@@ -21,8 +21,8 @@
       <section id="orientation-gate" aria-live="polite">
         <div class="gate-panel">
           <h1 id="gate-title">Please turn phone sideways</h1>
-          <p id="gate-copy">Landscape is required, but fullscreen is optional.</p>
-          <button id="gate-button" type="button">Tap to start</button>
+          <p id="gate-copy">Landscape orientation is required.</p>
+          <button id="gate-button" type="button" hidden>Enter Fullscreen</button>
         </div>
       </section>
 
@@ -49,6 +49,7 @@
             <button type="button" data-world-action="pickup">Pick Up</button>
             <button id="brutus-action-entry" type="button" data-open-companion>Brutus</button>
             <div id="companion-action-menu" class="companion-action-menu" hidden aria-label="Brutus actions">
+              <button type="button" data-companion-back>← Back</button>
               <div class="companion-action-heading">Brutus</div>
               <button type="button" data-companion-action="pet">Pet</button>
               <button type="button" data-companion-action="feed">Feed</button>

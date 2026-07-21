@@ -9,12 +9,15 @@ describe("game shell mobile-first UI", () => {
     const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
 
     expect(html).toContain('id="title-screen"');
+    expect(html).toContain('id="title-screen" class="title-screen" aria-label="Lulu\'s Tale title screen" hidden');
     expect(html).toContain('id="title-play-button"');
     expect(html).toContain('/assets/ui/lulus-tale-title-screen.png');
     expect(main).toContain('titlePlayButton.addEventListener("click"');
     expect(main).toContain('await start();');
     expect(main).toContain('const restoredSave = readAutosave();');
     expect(main).not.toContain('start().catch');
+    expect(main).toContain("canStartGameplay(getBootEnvironment())");
+    expect(main).not.toContain("await tryEnterFullscreen();");
     expect(html).toContain('class="title-art-frame"');
     expect(css).toContain("width: min(100vw, calc(100vh * 16 / 9))");
     expect(css).toContain("aspect-ratio: 16 / 9");
@@ -59,14 +62,31 @@ describe("game shell mobile-first UI", () => {
 
   it("ships the Brutus companion submenu inside the world interaction menu", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
 
     expect(html).toContain('id="companion-action-menu"');
+    expect(html).toContain("data-companion-back");
     expect(html).toContain('data-companion-action="pet"');
     expect(html).toContain('data-companion-action="feed"');
     expect(html).toContain('data-companion-action="sit"');
     expect(html).toContain('data-companion-action="follow"');
     expect(html).toContain('data-companion-action="lay"');
     expect(html).toContain('data-companion-action="fetch"');
+    expect(css).toContain("max-height: calc(100dvh");
+    expect(css).toContain("overflow-y: auto");
+    expect(css).toContain("grid-template-columns: 1fr 1fr");
+    expect(main).toContain("button.hidden = companionMenuOpen || !target");
+    expect(main).toContain("brutusActionEntry.hidden = companionMenuOpen || !brutusAvailable");
+  });
+
+  it("keeps the orientation gate above the title and refreshes every mobile viewport source", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+    expect(css).toMatch(/#orientation-gate\s*\{[^}]*z-index:\s*200/s);
+    expect(main).toContain('window.addEventListener("orientationchange", scheduleDisplayRefresh)');
+    expect(main).toContain('document.addEventListener("fullscreenchange", scheduleDisplayRefresh)');
+    expect(main).toContain('window.visualViewport?.addEventListener("resize", scheduleDisplayRefresh)');
   });
 
   it("uses the visible objective marker as a phone-friendly interaction control", () => {

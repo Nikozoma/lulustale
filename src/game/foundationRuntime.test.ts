@@ -3,17 +3,21 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PLAYER } from "./constants";
+import { canUseQuestTransition, createDemoQuestState, feedBrutusForQuest, takeDogFood } from "./demoQuest";
 import {
   canOccupy,
   decodeCollisionGrid,
   pointInRect,
   resolveSafeSpawn,
+  transitionAt,
   type CollisionSource,
   type FoundationMapId,
   type FoundationSemantic,
   type FoundationVisual,
   type RuntimeMap
 } from "./foundation";
+import { canActivateObjectiveMarker } from "./interactionSystem";
+import { createPlayer, updatePlayer } from "./player";
 
 const expected = {
   overworld: { tiles: [96, 68], pixels: [3072, 2176] },
@@ -66,14 +70,66 @@ describe("authoritative map runtime foundation", () => {
     }
   });
 
-  it("deterministically resolves the bundled Home spawn/collision contradiction without editing source semantics", () => {
+  it("keeps the corrected Home entry spawn safe above the front-door threshold", () => {
     const home = runtimeMap("home");
     const spawn = home.semantic.spawns.find((candidate) => candidate.id === "spawn_home_entry")!;
-    expect(canOccupy(home, spawn.pixel_point, PLAYER.collider)).toBe(false);
+    expect(canOccupy(home, spawn.pixel_point, PLAYER.collider)).toBe(true);
     expect(resolveSafeSpawn(home, spawn, PLAYER.collider)).toEqual({
-      position: { x: 464, y: 1232 },
-      adjusted: true
+      position: { x: 464, y: 1200 },
+      adjusted: false
     });
+  });
+
+  it("aligns representative Home collision points to visible walls, dividers, furniture, and floor", () => {
+    const home = runtimeMap("home");
+    expect(home.collision[3][25]).toBe(false); // Bedroom right wall.
+    expect(home.collision[15][13]).toBe(false); // Bedroom connector side wall.
+    expect(home.collision[15][14]).toBe(true); // Visible connector opening.
+    expect(home.collision[16][5]).toBe(false); // Main-room top divider wall.
+    expect(home.collision[18][5]).toBe(true); // Main-room floor below divider.
+    expect(home.collision[27][22]).toBe(true); // Floor band in front of stove/fridge.
+    expect(home.collision[28][23]).toBe(false); // Right pantry front.
+    expect(home.collision[38][10]).toBe(false); // Bottom wall outside door.
+    expect(home.collision[38][12]).toBe(true); // Front-door opening.
+  });
+
+  it("keeps the Home collision companion synchronized with corrected semantic regions", () => {
+    const home = runtimeMap("home");
+    const semantic = readJson<FoundationSemantic & {
+      walkable_regions: Array<{ tile_rect: TileRect }>;
+      blocked_regions: Array<{ tile_rect: TileRect }>;
+      passable_overrides: Array<{ tile_rect: TileRect }>;
+    }>("public/data/maps/home/semantic.json");
+    const derived = Array.from({ length: 43 }, () => Array.from({ length: 28 }, () => false));
+    for (const region of semantic.walkable_regions) fillTiles(derived, region.tile_rect, true);
+    for (const region of semantic.blocked_regions) fillTiles(derived, region.tile_rect, false);
+    for (const region of semantic.passable_overrides) fillTiles(derived, region.tile_rect, true);
+    expect(home.collision).toEqual(derived);
+  });
+
+  it("places the refrigerator objective within range of legal floor", () => {
+    const home = runtimeMap("home");
+    const refrigerator = home.semantic.interactions.find((candidate) => candidate.id === "interaction_refrigerator")!;
+    const marker = {
+      x: refrigerator.pixel_rect.x + refrigerator.pixel_rect.width / 2,
+      y: refrigerator.pixel_rect.y + refrigerator.pixel_rect.height / 2
+    };
+    const legalFloor = { x: 720, y: 880 };
+    expect(canOccupy(home, legalFloor, PLAYER.collider)).toBe(true);
+    expect(canActivateObjectiveMarker(legalFloor, marker, 58)).toBe(true);
+  });
+
+  it("allows front-door traversal to activate Home to Overworld without bypassing quest gating", () => {
+    const home = runtimeMap("home");
+    const player = createPlayer({ x: 448, y: 1200 }, "down");
+    updatePlayer(player, { x: 0, y: 1 }, false, 0.25, home);
+    expect(player.position.y).toBeGreaterThan(1200);
+    expect(transitionAt(home, player.position)?.id).toBe("transition_home_to_overworld");
+
+    const beforeFeeding = createDemoQuestState();
+    const readyToLeave = feedBrutusForQuest(takeDogFood(beforeFeeding));
+    expect(canUseQuestTransition(beforeFeeding, "transition_home_to_overworld")).toBe(false);
+    expect(canUseQuestTransition(readyToLeave, "transition_home_to_overworld")).toBe(true);
   });
 
   it("keeps Home and Charles Jr. transitions reciprocal with valid named arrival spawns", () => {
@@ -158,6 +214,14 @@ type VisualAuthorityDescriptor = FoundationVisual & {
     night_sha256: string;
   }>;
 };
+
+type TileRect = { x: number; y: number; width: number; height: number };
+
+function fillTiles(grid: boolean[][], rect: TileRect, value: boolean): void {
+  for (let y = rect.y; y < rect.y + rect.height; y += 1) {
+    for (let x = rect.x; x < rect.x + rect.width; x += 1) grid[y][x] = value;
+  }
+}
 
 function expectAssetHash(asset: string, embeddedHash: string, manifestHashes: Record<string, string>): void {
   const relative = asset.replace(/^production\//, "");

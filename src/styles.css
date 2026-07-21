@@ -147,7 +147,7 @@ body {
 #orientation-gate {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 200;
   display: grid;
   place-items: center;
   padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
@@ -731,13 +731,16 @@ button[aria-pressed="true"] {
   right: 0;
   z-index: 12;
   display: grid;
-  width: 132px;
+  width: 148px;
+  max-height: calc(100dvh - max(64px, calc(env(safe-area-inset-top) + 50px)) - max(10px, env(safe-area-inset-bottom)));
   gap: 5px;
   padding: 7px;
   border: 1px solid rgb(244 239 232 / 0.28);
   border-radius: 9px;
   background: rgb(18 16 14 / 0.95);
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.38);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .world-action-menu[hidden] {
@@ -790,11 +793,14 @@ button[aria-pressed="true"] {
 
 @media (max-height: 430px) {
   .world-action-menu {
-    width: 118px;
+    width: 138px;
+    gap: 4px;
+    padding: 6px;
   }
 
   .world-action-menu button {
-    min-height: 34px;
+    min-height: 32px;
+    padding-block: 5px;
   }
 }
 
@@ -1024,9 +1030,7 @@ button[aria-pressed="true"] {
 .companion-action-menu {
   display: grid;
   gap: 5px;
-  margin-top: 3px;
-  padding-top: 7px;
-  border-top: 1px solid rgb(244 239 232 / 0.2);
+  grid-template-columns: 1fr 1fr;
 }
 
 .companion-action-menu[hidden] {
@@ -1034,6 +1038,7 @@ button[aria-pressed="true"] {
 }
 
 .companion-action-heading {
+  grid-column: 1 / -1;
   padding: 2px 5px 1px;
   color: rgb(242 199 101 / 0.95);
   font: 800 11px/1.2 ui-sans-serif, system-ui, sans-serif;
@@ -1044,6 +1049,10 @@ button[aria-pressed="true"] {
 .companion-action-menu button {
   border-color: rgb(213 166 103 / 0.58);
   background: rgb(48 37 29 / 0.96);
+}
+
+.companion-action-menu button[data-companion-back] {
+  grid-column: 1 / -1;
 }
 
 .companion-action-menu button:not(:disabled) {

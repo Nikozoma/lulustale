@@ -1,4 +1,10 @@
 import "./styles.css";
+import {
+  canStartGameplay,
+  deriveBootView,
+  getDisplayViewportSize,
+  type BootEnvironment
+} from "./game/bootFlow";
 import { clampCamera } from "./game/camera";
 import {
   attackEnemy,
@@ -179,15 +185,72 @@ function requireElementFrom<T extends Element>(root: ParentNode, selector: strin
 }
 
 function isPortrait(): boolean {
-  return window.innerHeight > window.innerWidth;
+  if (window.matchMedia?.("(orientation: portrait)").matches) return true;
+  const size = getDisplayViewportSize(window.innerWidth, window.innerHeight, window.visualViewport);
+  return size.height > size.width;
 }
 
-async function tryEnterFullscreen(): Promise<void> {
-  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+let gameBooting = false;
+let gameStarted = false;
+let fullscreenFallbackAccepted = false;
+let lastFullscreenActive = false;
+let runtimeDisplayRefresh: (() => void) | null = null;
+
+function isFullscreenActive(): boolean {
+  const standaloneNavigator = navigator as Navigator & { standalone?: boolean };
+  return Boolean(
+    document.fullscreenElement ||
+    standaloneNavigator.standalone ||
+    window.matchMedia?.("(display-mode: fullscreen)").matches ||
+    window.matchMedia?.("(display-mode: standalone)").matches
+  );
+}
+
+function getBootEnvironment(): BootEnvironment {
+  return {
+    portrait: isPortrait(),
+    fullscreenSupported: typeof getFullscreenRequest() === "function",
+    fullscreenActive: isFullscreenActive(),
+    fullscreenFallbackAccepted,
+    gameplayStarted: gameStarted
+  };
+}
+
+function getFullscreenRequest(): (() => Promise<void>) | undefined {
+  return (document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }).requestFullscreen;
+}
+
+function syncBootUi(): void {
+  const view = deriveBootView(getBootEnvironment());
+  gate.hidden = view.gate === null;
+  titleScreen.hidden = !view.titleVisible;
+  titlePlayButton.disabled = gameBooting || !view.titleInteractive;
+  titleScreen.setAttribute("aria-hidden", String(!view.titleVisible));
+
+  if (view.gate === "portrait") {
+    gateTitle.textContent = "Please turn phone sideways";
+    gateCopy.textContent = "Landscape orientation is required.";
+    gateButton.hidden = true;
+  } else if (view.gate === "fullscreen") {
+    gateTitle.textContent = gameStarted ? "Return to fullscreen" : "Enter fullscreen";
+    gateCopy.textContent = "Fullscreen landscape is required to continue.";
+    gateButton.textContent = gameStarted ? "Return to Fullscreen" : "Enter Fullscreen";
+    gateButton.hidden = false;
+  }
+}
+
+async function enterFullscreenFromGate(): Promise<void> {
+  if (isPortrait()) {
+    syncBootUi();
+    return;
+  }
+
+  const requestFullscreen = getFullscreenRequest();
+  if (!isFullscreenActive() && requestFullscreen) {
     try {
-      await document.documentElement.requestFullscreen();
+      await requestFullscreen.call(document.documentElement);
     } catch {
-      // Best-effort only.
+      fullscreenFallbackAccepted = true;
     }
   }
   const orientation = screen.orientation as ScreenOrientation & { lock?: (orientation: "landscape") => Promise<void> };
@@ -195,10 +258,35 @@ async function tryEnterFullscreen(): Promise<void> {
     try {
       await orientation.lock("landscape");
     } catch {
-      // Best-effort only.
+      // Some desktop and installed-display modes do not expose orientation locking.
     }
   }
+
+  if (requestFullscreen && !isFullscreenActive()) fullscreenFallbackAccepted = true;
+  scheduleDisplayRefresh();
 }
+
+function refreshDisplayEnvironment(): void {
+  const fullscreenActive = isFullscreenActive();
+  if (fullscreenActive) fullscreenFallbackAccepted = false;
+  if (lastFullscreenActive && !fullscreenActive) fullscreenFallbackAccepted = false;
+  lastFullscreenActive = fullscreenActive;
+  syncBootUi();
+  runtimeDisplayRefresh?.();
+}
+
+function scheduleDisplayRefresh(): void {
+  refreshDisplayEnvironment();
+  window.requestAnimationFrame(refreshDisplayEnvironment);
+  window.setTimeout(refreshDisplayEnvironment, 120);
+}
+
+window.addEventListener("resize", scheduleDisplayRefresh);
+window.addEventListener("orientationchange", scheduleDisplayRefresh);
+document.addEventListener("fullscreenchange", scheduleDisplayRefresh);
+window.visualViewport?.addEventListener("resize", scheduleDisplayRefresh);
+gateButton.addEventListener("click", () => void enterFullscreenFromGate());
+syncBootUi();
 
 async function start(): Promise<void> {
   let viewport = resizeViewport();
@@ -271,15 +359,15 @@ async function start(): Promise<void> {
   let debugEnabled = false;
   let busy = false;
   let storyBusy = false;
-  // start() runs only after Play is pressed on the title screen.
-  let gameplayStarted = true;
-  let portraitPaused = isPortrait();
+  // start() runs only after the landscape/fullscreen gate and Play are complete.
+  let portraitPaused = deriveBootView(getBootEnvironment()).gameplayPaused;
   let lastTime = performance.now();
   let lastCamera: WorldPoint = { x: 0, y: 0 };
   let messageTime = 0;
   let dayWarningSeen = restoredSave?.flags.dayWarningSeen ?? false;
   let menuOpen = false;
   let actionMenuOpen = false;
+  let companionMenuOpen = false;
   let activeWorldBubble: ActiveWorldBubble | null = null;
   let menuPage: MenuPage = "status";
   let questTrackerMinimized = false;
@@ -289,10 +377,11 @@ async function start(): Promise<void> {
   let battleMenuMode: "commands" | "targets" | "items" = "commands";
   let battleResolving = false;
 
-  window.addEventListener("resize", () => {
+  runtimeDisplayRefresh = () => {
     viewport = resizeViewport();
-    updateGate();
-  });
+    portraitPaused = deriveBootView(getBootEnvironment()).gameplayPaused;
+    lastTime = performance.now();
+  };
   window.addEventListener("keydown", (event) => {
     if (event.repeat) return;
     if (event.code === "F3") {
@@ -317,11 +406,7 @@ async function start(): Promise<void> {
       } else if (actionMenuOpen) {
         closeActionMenu();
       } else {
-        actionMenuOpen = true;
-        companionActionMenu.hidden = true;
-        worldActionMenu.hidden = false;
-        worldActionToggle.setAttribute("aria-expanded", "true");
-        updateWorldActionMenu();
+        openWorldActionMenu();
       }
     }
   });
@@ -341,13 +426,14 @@ async function start(): Promise<void> {
       closeActionMenu();
       return;
     }
-    actionMenuOpen = true;
-    companionActionMenu.hidden = true;
-    worldActionMenu.hidden = false;
-    worldActionToggle.setAttribute("aria-expanded", "true");
-    updateWorldActionMenu();
+    openWorldActionMenu();
   });
   worldActionMenu.addEventListener("click", (event) => {
+    const backButton = (event.target as Element).closest<HTMLButtonElement>("button[data-companion-back]");
+    if (backButton) {
+      openWorldActionMenu();
+      return;
+    }
     const openCompanionButton = (event.target as Element).closest<HTMLButtonElement>("button[data-open-companion]");
     if (openCompanionButton && !openCompanionButton.disabled) {
       openCompanionActionMenu();
@@ -428,19 +514,7 @@ async function start(): Promise<void> {
     }
   });
 
-  gateButton.addEventListener("click", async () => {
-    if (isPortrait()) {
-      updateGate();
-      return;
-    }
-    await tryEnterFullscreen();
-    gameplayStarted = true;
-    portraitPaused = false;
-    lastTime = performance.now();
-    updateGate();
-  });
-
-  updateGate();
+  runtimeDisplayRefresh();
   updateHud();
   status.textContent = "";
   persistAutosave();
@@ -687,17 +761,28 @@ async function start(): Promise<void> {
 
   function closeActionMenu(): void {
     actionMenuOpen = false;
+    companionMenuOpen = false;
     worldActionMenu.hidden = true;
     companionActionMenu.hidden = true;
     worldActionToggle.setAttribute("aria-expanded", "false");
   }
 
+  function openWorldActionMenu(): void {
+    actionMenuOpen = true;
+    companionMenuOpen = false;
+    worldActionMenu.hidden = false;
+    companionActionMenu.hidden = true;
+    worldActionToggle.setAttribute("aria-expanded", "true");
+    updateWorldActionMenu();
+  }
+
   function openCompanionActionMenu(): void {
     actionMenuOpen = true;
+    companionMenuOpen = true;
     worldActionMenu.hidden = false;
     companionActionMenu.hidden = false;
     worldActionToggle.setAttribute("aria-expanded", "true");
-    updateCompanionActionMenu();
+    updateWorldActionMenu();
   }
 
   function getQuestActionTarget(): WorldActionTarget | null {
@@ -757,13 +842,17 @@ async function start(): Promise<void> {
     for (const button of worldActionButtons) {
       const kind = button.dataset.worldAction as WorldActionKind;
       const target = actions[kind];
+      button.hidden = companionMenuOpen || !target;
       button.dataset.available = String(Boolean(target));
       button.textContent = target ? `${WORLD_ACTION_LABELS[kind]} · ${target.label}` : WORLD_ACTION_LABELS[kind];
       button.title = describeWorldAction(target, kind);
       button.disabled = busy || storyBusy || menuOpen || !target;
     }
     updateCompanionActionMenu();
-    brutusActionEntry.disabled = busy || storyBusy || menuOpen || phase !== "day" || distance(player.position, companion.position) > INTERACTION_RADIUS + 18;
+    const brutusAvailable = phase === "day" && distance(player.position, companion.position) <= INTERACTION_RADIUS + 18;
+    brutusActionEntry.hidden = companionMenuOpen || !brutusAvailable;
+    brutusActionEntry.disabled = busy || storyBusy || menuOpen || !brutusAvailable;
+    companionActionMenu.hidden = !companionMenuOpen;
   }
 
   function updateCompanionActionMenu(): void {
@@ -1420,28 +1509,7 @@ async function start(): Promise<void> {
   }
 
   function canUseInput(): boolean {
-    return gameplayStarted && !portraitPaused && !busy && !storyBusy && !menuOpen && !battleState && !isPortrait();
-  }
-
-  function updateGate(): void {
-    if (isPortrait()) {
-      portraitPaused = true;
-      gate.hidden = false;
-      gateTitle.textContent = "Please turn phone sideways";
-      gateCopy.textContent = "Landscape is required, but fullscreen is optional.";
-      gateButton.hidden = true;
-      return;
-    }
-    if (!gameplayStarted) {
-      gate.hidden = false;
-      gateTitle.textContent = "Lulu's Tale";
-      gateCopy.textContent = "Tap to start. The game remains usable if fullscreen or orientation lock is unavailable.";
-      gateButton.hidden = false;
-      void tryEnterFullscreen();
-      return;
-    }
-    portraitPaused = false;
-    gate.hidden = true;
+    return gameStarted && !portraitPaused && gate.hidden && !busy && !storyBusy && !menuOpen && !battleState && !isPortrait();
   }
 
   function updateControls(): void {
@@ -1684,7 +1752,8 @@ function distance(a: WorldPoint, b: WorldPoint): number {
 }
 
 function resizeViewport(): LogicalViewport {
-  const viewport = calculateLogicalViewport(window.innerWidth, window.innerHeight, window.devicePixelRatio);
+  const display = getDisplayViewportSize(window.innerWidth, window.innerHeight, window.visualViewport);
+  const viewport = calculateLogicalViewport(display.width, display.height, window.devicePixelRatio);
   applyLogicalViewport(canvas, viewport);
   canvasContext.imageSmoothingEnabled = false;
   return viewport;
@@ -1700,27 +1769,29 @@ function requireMap(maps: Map<FoundationMapId, RuntimeMap>, id: FoundationMapId)
   return map;
 }
 
-let gameBooting = false;
-
 titlePlayButton.addEventListener("click", () => {
-  if (gameBooting) return;
+  if (gameBooting || !canStartGameplay(getBootEnvironment())) {
+    syncBootUi();
+    return;
+  }
   gameBooting = true;
   titlePlayButton.disabled = true;
   titleScreen.classList.add("is-loading");
 
   void (async () => {
     try {
-      await tryEnterFullscreen();
       // Browser/PWA autosave restoration occurs inside start(), so saved state is
       // loaded only after the player explicitly presses Play.
       await start();
-      titleScreen.hidden = true;
+      gameStarted = true;
+      syncBootUi();
     } catch (error: unknown) {
       const text = error instanceof Error ? error.message : String(error);
       status.textContent = `Unable to start: ${text}`;
       titlePlayButton.disabled = false;
       titleScreen.classList.remove("is-loading");
       gameBooting = false;
+      syncBootUi();
       console.error(error);
     }
   })();
