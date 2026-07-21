@@ -10,6 +10,9 @@ export default defineConfig({
       injectRegister: "auto",
       includeAssets: [
         "assets/ui/lulus-tale-title-screen.png",
+        "assets/ui/lifecycle/portrait-gate.jpg",
+        "assets/ui/lifecycle/fullscreen-entry.jpg",
+        "assets/ui/lifecycle/exit-goodbye.jpg",
         "pwa/lulus-tale-192.png",
         "pwa/lulus-tale-512.png",
         "pwa/lulus-tale-maskable-192.png",
@@ -21,7 +24,7 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         display: "standalone",
-        orientation: "landscape",
+        orientation: "any",
         theme_color: DARK_GAME_THEME,
         background_color: DARK_GAME_THEME,
         icons: [

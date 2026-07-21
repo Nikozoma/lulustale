@@ -24,6 +24,15 @@ describe("shared responsive logical camera", () => {
     expect(viewport.outputScale).toBe(3);
   });
 
+  it("fills a wide Android usable viewport even when its height is not a 360px multiple", () => {
+    const viewport = calculateLogicalViewport(883, 343, 3);
+    expect(viewport.height).toBe(360);
+    expect(viewport.width).toBe(927);
+    expect(viewport.outputScale).toBe(2);
+    expect(viewport.cssWidth).toBeCloseTo(883);
+    expect(viewport.cssHeight).toBeGreaterThan(342.8);
+  });
+
   it("falls back to a uniform nearest-neighbor fit below reference size", () => {
     expect(calculateLogicalViewport(480, 270, 1)).toMatchObject({
       width: 640,

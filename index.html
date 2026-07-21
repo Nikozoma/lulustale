@@ -15,16 +15,19 @@
           <img class="title-screen-art" src="/assets/ui/lulus-tale-title-screen.png" alt="Lulu's Tale nighttime neighborhood title artwork" />
           <button id="title-play-button" class="title-play-hitbox" type="button" aria-label="Play Lulu's Tale"><span class="sr-only">Play</span></button>
         </div>
+        <button id="title-exit-button" class="title-exit-button" type="button">Exit</button>
       </section>
 
       <canvas id="game" width="640" height="360" aria-label="Lulu's Tale playable demo"></canvas>
       <button id="objective-marker" class="objective-marker" type="button" aria-label="Interact with current objective" hidden><span aria-hidden="true">❕</span></button>
 
-      <section id="orientation-gate" aria-live="polite">
-        <div class="gate-panel">
-          <h1 id="gate-title">Please turn phone sideways</h1>
-          <p id="gate-copy">Landscape orientation is required.</p>
-          <button id="gate-button" type="button" hidden>Enter Fullscreen</button>
+      <section id="orientation-gate" class="lifecycle-screen" aria-live="polite" data-mode="portrait">
+        <div class="lifecycle-art-frame">
+          <img id="lifecycle-art" class="lifecycle-art" src="/assets/ui/lifecycle/portrait-gate.jpg" alt="Lulu's Tale: turn phone sideways to play" />
+          <button id="gate-button" class="fullscreen-entry-hitbox" type="button" hidden aria-label="Enter fullscreen">
+            <span class="sr-only">Enter Fullscreen</span>
+          </button>
+          <p id="lifecycle-instruction" class="sr-only">Turn phone sideways to play.</p>
         </div>
       </section>
 
@@ -88,6 +91,7 @@
             <button type="button" data-menu-page="quest">Quest</button>
             <button type="button" data-menu-page="map">Map</button>
             <button type="button" data-menu-page="save">Save / Load</button>
+            <button type="button" data-menu-page="options">Options</button>
             <button type="button" data-menu-page="debug">Debug</button>
           </nav>
           <div id="menu-content" class="menu-content"></div>

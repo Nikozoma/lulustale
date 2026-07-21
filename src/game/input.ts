@@ -25,22 +25,26 @@ export const TOUCH_DEADZONE_PX = 5;
 
 export function createInputController(canvas: HTMLCanvasElement, getViewport: () => Size) {
   const pressed = new Set<string>();
+  const blockedKeys = new Set<string>();
   let movementPointer: TrackedPointer | null = null;
+  let blockedPointerId: number | null = null;
 
   window.addEventListener("keydown", (event) => {
     if (event.code in KEYS) {
-      pressed.add(event.code);
+      if (!blockedKeys.has(event.code)) pressed.add(event.code);
       event.preventDefault();
     }
   });
   window.addEventListener("keyup", (event) => {
     if (event.code in KEYS) {
       pressed.delete(event.code);
+      blockedKeys.delete(event.code);
       event.preventDefault();
     }
   });
 
   canvas.addEventListener("pointerdown", (event) => {
+    if (blockedPointerId !== null) return;
     const viewport = getViewport();
     const point = pointerToLogical(canvas, viewport, event);
     if (point.x > viewport.width / 2 || movementPointer) {
@@ -63,9 +67,17 @@ export function createInputController(canvas: HTMLCanvasElement, getViewport: ()
       event.preventDefault();
     }
   };
+  const clearBlockedPointer = (event: PointerEvent) => {
+    if (blockedPointerId === event.pointerId) {
+      blockedPointerId = null;
+      event.preventDefault();
+    }
+  };
   canvas.addEventListener("pointerup", clearPointer);
   canvas.addEventListener("pointercancel", clearPointer);
   canvas.addEventListener("lostpointercapture", clearPointer);
+  window.addEventListener("pointerup", clearBlockedPointer);
+  window.addEventListener("pointercancel", clearBlockedPointer);
 
   return {
     getMoveVector(): WorldPoint {
@@ -82,6 +94,12 @@ export function createInputController(canvas: HTMLCanvasElement, getViewport: ()
       return movementPointer
         ? { active: true, start: movementPointer.start, current: movementPointer.current }
         : { active: false, start: { x: 0, y: 0 }, current: { x: 0, y: 0 } };
+    },
+    resetMovementInput(): void {
+      for (const code of pressed) blockedKeys.add(code);
+      pressed.clear();
+      if (movementPointer) blockedPointerId = movementPointer.id;
+      movementPointer = null;
     }
   };
 }

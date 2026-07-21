@@ -13,36 +13,36 @@ export function calculateLogicalViewport(
   cssHeight: number,
   devicePixelRatio: number
 ): LogicalViewport {
+  const availableWidth = Math.max(1, cssWidth);
+  const availableHeight = Math.max(1, cssHeight);
   const dpr = Math.max(1, devicePixelRatio || 1);
-  const physicalWidth = Math.max(1, Math.floor(cssWidth * dpr));
-  const physicalHeight = Math.max(1, Math.floor(cssHeight * dpr));
+  const physicalWidth = Math.max(1, Math.floor(availableWidth * dpr));
+  const physicalHeight = Math.max(1, Math.floor(availableHeight * dpr));
+  const height = LOGICAL_CAMERA_HEIGHT;
+  const width = Math.max(
+    CORE_SAFE_VIEW.width,
+    Math.round((height * availableWidth) / availableHeight)
+  );
   const referenceScale = Math.floor(
-    Math.min(physicalWidth / CORE_SAFE_VIEW.width, physicalHeight / CORE_SAFE_VIEW.height)
+    Math.min(physicalWidth / width, physicalHeight / height)
   );
   const outputScale = Math.max(1, referenceScale);
   const compatibilityFallback = referenceScale < 1;
-  const width = Math.max(
-    CORE_SAFE_VIEW.width,
-    compatibilityFallback ? CORE_SAFE_VIEW.width : Math.floor(physicalWidth / outputScale)
-  );
-  const height = LOGICAL_CAMERA_HEIGHT;
-  const cssPixelScale = compatibilityFallback
-    ? Math.min(cssWidth / width, cssHeight / height)
-    : outputScale / dpr;
+  const cssPixelScale = Math.min(availableWidth / width, availableHeight / height);
 
   return {
     width,
     height,
     outputScale,
-    cssWidth: Math.max(1, Math.floor(width * cssPixelScale)),
-    cssHeight: Math.max(1, Math.floor(height * cssPixelScale)),
+    cssWidth: Math.max(1, width * cssPixelScale),
+    cssHeight: Math.max(1, height * cssPixelScale),
     compatibilityFallback
   };
 }
 
 export function applyLogicalViewport(canvas: HTMLCanvasElement, viewport: LogicalViewport): void {
-  const backingWidth = viewport.width * viewport.outputScale;
-  const backingHeight = viewport.height * viewport.outputScale;
+  const backingWidth = Math.max(1, Math.round(viewport.width * viewport.outputScale));
+  const backingHeight = Math.max(1, Math.round(viewport.height * viewport.outputScale));
   if (canvas.width !== backingWidth) {
     canvas.width = backingWidth;
   }

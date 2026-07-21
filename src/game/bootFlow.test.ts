@@ -11,8 +11,10 @@ const landscapeReady: BootEnvironment = {
   portrait: false,
   fullscreenSupported: true,
   fullscreenActive: true,
+  fullscreenEntryAccepted: true,
   fullscreenFallbackAccepted: false,
-  gameplayStarted: false
+  gameplayStarted: false,
+  exitPending: false
 };
 
 describe("mobile boot and display flow", () => {
@@ -28,7 +30,7 @@ describe("mobile boot and display flow", () => {
   });
 
   it("requires the landscape fullscreen gesture before exposing the title", () => {
-    const needsFullscreen = { ...landscapeReady, fullscreenActive: false };
+    const needsFullscreen = { ...landscapeReady, fullscreenEntryAccepted: false };
     expect(deriveBootView(needsFullscreen).gate).toBe("fullscreen");
     expect(canStartGameplay(needsFullscreen)).toBe(false);
     expect(deriveBootView(landscapeReady)).toMatchObject({ gate: null, titleVisible: true, titleInteractive: true });
@@ -41,11 +43,28 @@ describe("mobile boot and display flow", () => {
     expect(canStartGameplay(fallback)).toBe(true);
   });
 
-  it("pauses gameplay behind the gate after portrait rotation or fullscreen exit", () => {
+  it("pauses gameplay without treating an ordinary portrait tilt as an exit", () => {
     expect(deriveBootView({ ...landscapeReady, gameplayStarted: true })).toMatchObject({ gate: null, titleVisible: false });
+    expect(deriveBootView({ ...landscapeReady, gameplayStarted: true, portrait: true })).toMatchObject({
+      gate: null,
+      titleVisible: false,
+      gameplayPaused: true
+    });
+  });
+
+  it("routes unexpected fullscreen loss back through fullscreen entry", () => {
     expect(deriveBootView({ ...landscapeReady, gameplayStarted: true, fullscreenActive: false })).toMatchObject({
       gate: "fullscreen",
       titleVisible: false,
+      gameplayPaused: true
+    });
+  });
+
+  it("gives the explicit exit-pending screen priority until portrait completion", () => {
+    expect(deriveBootView({ ...landscapeReady, gameplayStarted: true, exitPending: true })).toEqual({
+      gate: "exit_pending",
+      titleVisible: false,
+      titleInteractive: false,
       gameplayPaused: true
     });
   });

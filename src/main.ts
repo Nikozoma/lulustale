@@ -119,14 +119,15 @@ import {
 
 const titleScreen = requireElement<HTMLElement>("#title-screen");
 const titlePlayButton = requireElement<HTMLButtonElement>("#title-play-button");
+const titleExitButton = requireElement<HTMLButtonElement>("#title-exit-button");
 const canvas = requireElement<HTMLCanvasElement>("#game");
 const objectiveMarker = requireElement<HTMLButtonElement>("#objective-marker");
 const status = requireElement<HTMLDivElement>("#status");
 const objective = requireElement<HTMLDivElement>("#objective");
 const message = requireElement<HTMLDivElement>("#quest-message");
 const gate = requireElement<HTMLElement>("#orientation-gate");
-const gateTitle = requireElement<HTMLHeadingElement>("#gate-title");
-const gateCopy = requireElement<HTMLParagraphElement>("#gate-copy");
+const lifecycleArt = requireElement<HTMLImageElement>("#lifecycle-art");
+const lifecycleInstruction = requireElement<HTMLParagraphElement>("#lifecycle-instruction");
 const gateButton = requireElement<HTMLButtonElement>("#gate-button");
 const petButton = requireElement<HTMLButtonElement>("#pet-button");
 const feedButton = requireElement<HTMLButtonElement>("#feed-button");
@@ -176,7 +177,7 @@ const INTERACTION_RADIUS = 58;
 const BUSH_TILE = { x: 68, y: 38 }; // Existing real bush east of Home in the locked 96×68 Overworld grid.
 const BIRD_GANG_DESIGN_POINT = { x: 87.5 * 32, y: 48.5 * 32 }; // Nearest open parking position beside the authored point's visible parked car.
 
-type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "debug";
+type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "options" | "debug";
 type ActiveWorldBubble = { position: WorldPoint; text: string; expiresAt: number };
 
 function requireElement<T extends Element>(selector: string): T {
@@ -199,9 +200,15 @@ function isPortrait(): boolean {
 
 let gameBooting = false;
 let gameStarted = false;
+let gameRuntimeStarted = false;
+let fullscreenEntryAccepted = false;
 let fullscreenFallbackAccepted = false;
+let exitPending = false;
+let exitCompletionRunning = false;
 let lastFullscreenActive = false;
 let runtimeDisplayRefresh: (() => void) | null = null;
+let runtimeResetMovementInput: (() => void) | null = null;
+let runtimePrepareExit: (() => void) | null = null;
 
 function isFullscreenActive(): boolean {
   const standaloneNavigator = navigator as Navigator & { standalone?: boolean };
@@ -218,8 +225,10 @@ function getBootEnvironment(): BootEnvironment {
     portrait: isPortrait(),
     fullscreenSupported: typeof getFullscreenRequest() === "function",
     fullscreenActive: isFullscreenActive(),
+    fullscreenEntryAccepted,
     fullscreenFallbackAccepted,
-    gameplayStarted: gameStarted
+    gameplayStarted: gameStarted,
+    exitPending
   };
 }
 
@@ -232,17 +241,29 @@ function syncBootUi(): void {
   gate.hidden = view.gate === null;
   titleScreen.hidden = !view.titleVisible;
   titlePlayButton.disabled = gameBooting || !view.titleInteractive;
+  titleExitButton.disabled = gameBooting || !view.titleInteractive;
   titleScreen.setAttribute("aria-hidden", String(!view.titleVisible));
 
   if (view.gate === "portrait") {
-    gateTitle.textContent = "Please turn phone sideways";
-    gateCopy.textContent = "Landscape orientation is required.";
+    gate.dataset.mode = "portrait";
+    lifecycleArt.src = "/assets/ui/lifecycle/portrait-gate.jpg";
+    lifecycleArt.alt = "Lulu's Tale: turn phone sideways to play";
+    lifecycleInstruction.textContent = "Turn phone sideways to play.";
     gateButton.hidden = true;
   } else if (view.gate === "fullscreen") {
-    gateTitle.textContent = gameStarted ? "Return to fullscreen" : "Enter fullscreen";
-    gateCopy.textContent = "Fullscreen landscape is required to continue.";
-    gateButton.textContent = gameStarted ? "Return to Fullscreen" : "Enter Fullscreen";
+    gate.dataset.mode = "fullscreen";
+    lifecycleArt.src = "/assets/ui/lifecycle/fullscreen-entry.jpg";
+    lifecycleArt.alt = "Lulu's Tale fullscreen entry";
+    lifecycleInstruction.textContent = gameStarted
+      ? "Return to fullscreen to continue."
+      : "Enter fullscreen to continue.";
     gateButton.hidden = false;
+  } else if (view.gate === "exit_pending") {
+    gate.dataset.mode = "exit_pending";
+    lifecycleArt.src = "/assets/ui/lifecycle/exit-goodbye.jpg";
+    lifecycleArt.alt = "Lulu's Tale: turn phone upright to exit";
+    lifecycleInstruction.textContent = "Turn phone upright to exit.";
+    gateButton.hidden = true;
   }
 }
 
@@ -269,17 +290,66 @@ async function enterFullscreenFromGate(): Promise<void> {
     }
   }
 
+  fullscreenEntryAccepted = true;
   if (requestFullscreen && !isFullscreenActive()) fullscreenFallbackAccepted = true;
   scheduleDisplayRefresh();
 }
 
+function beginExitLifecycle(): void {
+  if (exitPending || gameBooting) return;
+  runtimePrepareExit?.();
+  gameStarted = false;
+  exitPending = true;
+  releaseOrientationLock();
+  syncBootUi();
+  runtimeDisplayRefresh?.();
+}
+
+function releaseOrientationLock(): void {
+  try {
+    const orientation = screen.orientation as ScreenOrientation & { unlock?: () => void };
+    orientation.unlock?.();
+  } catch {
+    // Orientation locking is optional and browser-managed on some platforms.
+  }
+}
+
+async function completeExitToPortrait(): Promise<void> {
+  if (!exitPending || !isPortrait() || exitCompletionRunning) return;
+  exitCompletionRunning = true;
+  runtimeResetMovementInput?.();
+  try {
+    releaseOrientationLock();
+    if (document.fullscreenElement && document.exitFullscreen) {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // Installed PWAs and some mobile browsers manage immersive mode themselves.
+  } finally {
+    fullscreenEntryAccepted = false;
+    fullscreenFallbackAccepted = false;
+    exitPending = false;
+    exitCompletionRunning = false;
+    lastFullscreenActive = isFullscreenActive();
+    syncBootUi();
+    runtimeDisplayRefresh?.();
+  }
+}
+
 function refreshDisplayEnvironment(): void {
   const fullscreenActive = isFullscreenActive();
-  if (fullscreenActive) fullscreenFallbackAccepted = false;
-  if (lastFullscreenActive && !fullscreenActive) fullscreenFallbackAccepted = false;
+  const portrait = isPortrait();
+  if (!exitPending && lastFullscreenActive && !fullscreenActive) {
+    fullscreenEntryAccepted = false;
+    fullscreenFallbackAccepted = false;
+    runtimeResetMovementInput?.();
+  }
+  if (!exitPending && portrait && gameStarted) runtimeResetMovementInput?.();
+  if (fullscreenActive && fullscreenEntryAccepted) fullscreenFallbackAccepted = false;
   lastFullscreenActive = fullscreenActive;
   syncBootUi();
   runtimeDisplayRefresh?.();
+  if (exitPending && portrait) void completeExitToPortrait();
 }
 
 function scheduleDisplayRefresh(): void {
@@ -387,6 +457,18 @@ async function start(): Promise<void> {
   let battleState: TurnBasedBattleState | null = null;
   let battleMenuMode: "commands" | "targets" | "items" = "commands";
   let battleResolving = false;
+
+  runtimeResetMovementInput = () => input.resetMovementInput();
+  runtimePrepareExit = () => {
+    input.resetMovementInput();
+    closeActionMenu();
+    closeMenu();
+    activeWorldBubble = null;
+    worldChatBubble.hidden = true;
+    messageTime = 0;
+    message.textContent = "";
+    persistAutosave();
+  };
 
   runtimeDisplayRefresh = () => {
     viewport = resizeViewport();
@@ -689,6 +771,17 @@ async function start(): Promise<void> {
           <span class="world-map-marker" style="left:${marker.xPercent}%;top:${marker.yPercent}%" aria-label="Current location"></span>
         </div>
         <div class="map-location-line">Current location: ${currentLocationLabel()}</div>`;
+      return;
+    }
+
+    if (menuPage === "options") {
+      menuContent.innerHTML = `
+        <h3 class="menu-section-title">Options</h3>
+        <div class="debug-card">
+          <div><strong>Exit Lulu's Tale</strong><div class="menu-muted">Pause the game and return through the phone-orientation exit screen.</div></div>
+          <button id="options-exit-game" class="danger-action" type="button">Exit</button>
+        </div>`;
+      requireElementFrom<HTMLButtonElement>(menuContent, "#options-exit-game").addEventListener("click", beginExitLifecycle);
       return;
     }
 
@@ -1588,6 +1681,7 @@ async function start(): Promise<void> {
 
   async function enterMap(transition: TransitionDefinition): Promise<void> {
     if (busy || !canUseQuestTransition(quest, transition.id)) return;
+    input.resetMovementInput();
     busy = true;
     updateControls();
     status.textContent = "Loading destination…";
@@ -1782,15 +1876,18 @@ async function start(): Promise<void> {
   function frame(now: number): void {
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
-    actorTime += dt;
-    autosaveElapsed += dt;
-    if (autosaveElapsed >= 5 && !busy && !storyBusy && !battleState) {
-      autosaveElapsed = 0;
-      persistAutosave();
-    }
-    if (messageTime > 0) {
-      messageTime = Math.max(0, messageTime - dt);
-      if (messageTime === 0) message.textContent = "";
+    const lifecycleActive = gameStarted && !portraitPaused && gate.hidden && !isPortrait();
+    if (lifecycleActive) {
+      actorTime += dt;
+      autosaveElapsed += dt;
+      if (autosaveElapsed >= 5 && !busy && !storyBusy && !battleState) {
+        autosaveElapsed = 0;
+        persistAutosave();
+      }
+      if (messageTime > 0) {
+        messageTime = Math.max(0, messageTime - dt);
+        if (messageTime === 0) message.textContent = "";
+      }
     }
 
     if (canUseInput()) {
@@ -1927,6 +2024,8 @@ function requireMap(maps: Map<FoundationMapId, RuntimeMap>, id: FoundationMapId)
   return map;
 }
 
+titleExitButton.addEventListener("click", beginExitLifecycle);
+
 titlePlayButton.addEventListener("click", () => {
   if (gameBooting || !canStartGameplay(getBootEnvironment())) {
     syncBootUi();
@@ -1940,8 +2039,14 @@ titlePlayButton.addEventListener("click", () => {
     try {
       // Browser/PWA autosave restoration occurs inside start(), so saved state is
       // loaded only after the player explicitly presses Play.
-      await start();
+      if (!gameRuntimeStarted) {
+        await start();
+        gameRuntimeStarted = true;
+      }
       gameStarted = true;
+      gameBooting = false;
+      titleScreen.classList.remove("is-loading");
+      runtimeDisplayRefresh?.();
       syncBootUi();
     } catch (error: unknown) {
       const text = error instanceof Error ? error.message : String(error);

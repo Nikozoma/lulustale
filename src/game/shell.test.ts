@@ -21,8 +21,9 @@ describe("game shell mobile-first UI", () => {
     expect(html).toContain('class="title-art-frame"');
     expect(css).toContain("width: min(100vw, calc(100vh * 16 / 9))");
     expect(css).toContain("aspect-ratio: 16 / 9");
-    expect(css).toContain("object-fit: contain");
-    expect(css).not.toContain("object-fit: cover");
+    const titleArtCss = css.match(/\.title-screen-art\s*\{([^}]*)\}/s)?.[1] ?? "";
+    expect(titleArtCss).toContain("object-fit: contain");
+    expect(titleArtCss).not.toContain("object-fit: cover");
   });
 
   it.each([
