@@ -11,6 +11,7 @@ const landscapeReady: BootEnvironment = {
   portrait: false,
   fullscreenSupported: true,
   fullscreenActive: true,
+  fullscreenDisplayMode: false,
   fullscreenEntryAccepted: true,
   fullscreenFallbackAccepted: false,
   gameplayStarted: false,
@@ -30,11 +31,31 @@ describe("mobile boot and display flow", () => {
   });
 
   it("requires the landscape fullscreen gesture before exposing the title", () => {
-    const needsFullscreen = { ...landscapeReady, fullscreenEntryAccepted: false };
+    const needsFullscreen = { ...landscapeReady, fullscreenActive: false, fullscreenEntryAccepted: false };
     expect(deriveBootView(needsFullscreen).gate).toBe("fullscreen");
     expect(canStartGameplay(needsFullscreen)).toBe(false);
     expect(deriveBootView(landscapeReady)).toMatchObject({ gate: null, titleVisible: true, titleInteractive: true });
     expect(canStartGameplay(landscapeReady)).toBe(true);
+  });
+
+  it("accepts an installed fullscreen display mode without a redundant Fullscreen API gesture", () => {
+    const installedFullscreen = {
+      ...landscapeReady,
+      fullscreenDisplayMode: true,
+      fullscreenEntryAccepted: false
+    };
+    expect(deriveBootView(installedFullscreen)).toMatchObject({ gate: null, titleVisible: true, titleInteractive: true });
+    expect(canStartGameplay(installedFullscreen)).toBe(true);
+  });
+
+  it("keeps a standalone installed-app fallback on the fullscreen-entry screen", () => {
+    const installedStandalone = {
+      ...landscapeReady,
+      fullscreenActive: false,
+      fullscreenDisplayMode: false,
+      fullscreenEntryAccepted: false
+    };
+    expect(deriveBootView(installedStandalone)).toMatchObject({ gate: "fullscreen", gameplayPaused: true });
   });
 
   it("permits a documented platform fallback only after a fullscreen attempt", () => {

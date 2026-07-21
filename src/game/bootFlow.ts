@@ -4,6 +4,7 @@ export type BootEnvironment = {
   portrait: boolean;
   fullscreenSupported: boolean;
   fullscreenActive: boolean;
+  fullscreenDisplayMode: boolean;
   fullscreenEntryAccepted: boolean;
   fullscreenFallbackAccepted: boolean;
   gameplayStarted: boolean;
@@ -30,7 +31,7 @@ export function deriveBootView(environment: BootEnvironment): BootView {
   }
 
   const fullscreenReady =
-    environment.fullscreenEntryAccepted &&
+    (environment.fullscreenEntryAccepted || environment.fullscreenDisplayMode) &&
     (!environment.fullscreenSupported ||
       environment.fullscreenActive ||
       environment.fullscreenFallbackAccepted);

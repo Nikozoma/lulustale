@@ -144,6 +144,7 @@ const menuPanel = requireElement<HTMLElement>("#main-menu");
 const menuClose = requireElement<HTMLButtonElement>("#menu-close");
 const menuTabs = requireElement<HTMLElement>("#menu-tabs");
 const menuContent = requireElement<HTMLDivElement>("#menu-content");
+const menuExitButton = requireElement<HTMLButtonElement>("#menu-exit-button");
 const backupLoadInput = requireElement<HTMLInputElement>("#backup-load-input");
 const questTracker = requireElement<HTMLElement>("#quest-tracker");
 const questTrackerOpen = requireElement<HTMLButtonElement>("#quest-tracker-open");
@@ -177,7 +178,7 @@ const INTERACTION_RADIUS = 58;
 const BUSH_TILE = { x: 68, y: 38 }; // Existing real bush east of Home in the locked 96×68 Overworld grid.
 const BIRD_GANG_DESIGN_POINT = { x: 87.5 * 32, y: 48.5 * 32 }; // Nearest open parking position beside the authored point's visible parked car.
 
-type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "options" | "debug";
+type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "debug";
 type ActiveWorldBubble = { position: WorldPoint; text: string; expiresAt: number };
 
 function requireElement<T extends Element>(selector: string): T {
@@ -210,21 +211,26 @@ let runtimeDisplayRefresh: (() => void) | null = null;
 let runtimeResetMovementInput: (() => void) | null = null;
 let runtimePrepareExit: (() => void) | null = null;
 
-function isFullscreenActive(): boolean {
+type AppDisplayMode = "fullscreen" | "standalone" | "browser";
+
+function getAppDisplayMode(): AppDisplayMode {
   const standaloneNavigator = navigator as Navigator & { standalone?: boolean };
-  return Boolean(
-    document.fullscreenElement ||
-    standaloneNavigator.standalone ||
-    window.matchMedia?.("(display-mode: fullscreen)").matches ||
-    window.matchMedia?.("(display-mode: standalone)").matches
-  );
+  if (window.matchMedia?.("(display-mode: fullscreen)").matches) return "fullscreen";
+  if (window.matchMedia?.("(display-mode: standalone)").matches || standaloneNavigator.standalone) return "standalone";
+  return "browser";
+}
+
+function isFullscreenActive(): boolean {
+  return Boolean(document.fullscreenElement || getAppDisplayMode() === "fullscreen");
 }
 
 function getBootEnvironment(): BootEnvironment {
+  const displayMode = getAppDisplayMode();
   return {
     portrait: isPortrait(),
     fullscreenSupported: typeof getFullscreenRequest() === "function",
     fullscreenActive: isFullscreenActive(),
+    fullscreenDisplayMode: displayMode === "fullscreen",
     fullscreenEntryAccepted,
     fullscreenFallbackAccepted,
     gameplayStarted: gameStarted,
@@ -543,6 +549,7 @@ async function start(): Promise<void> {
   });
   objectiveMarker.addEventListener("click", () => void activateObjectiveMarker());
   menuClose.addEventListener("click", closeMenu);
+  menuExitButton.addEventListener("click", beginExitLifecycle);
   questTrackerOpen.addEventListener("click", () => openMenu("quest"));
   questTrackerMinimize.addEventListener("click", () => {
     questTrackerMinimized = !questTrackerMinimized;
@@ -771,17 +778,6 @@ async function start(): Promise<void> {
           <span class="world-map-marker" style="left:${marker.xPercent}%;top:${marker.yPercent}%" aria-label="Current location"></span>
         </div>
         <div class="map-location-line">Current location: ${currentLocationLabel()}</div>`;
-      return;
-    }
-
-    if (menuPage === "options") {
-      menuContent.innerHTML = `
-        <h3 class="menu-section-title">Options</h3>
-        <div class="debug-card">
-          <div><strong>Exit Lulu's Tale</strong><div class="menu-muted">Pause the game and return through the phone-orientation exit screen.</div></div>
-          <button id="options-exit-game" class="danger-action" type="button">Exit</button>
-        </div>`;
-      requireElementFrom<HTMLButtonElement>(menuContent, "#options-exit-game").addEventListener("click", beginExitLifecycle);
       return;
     }
 

@@ -44,6 +44,8 @@ describe("game shell mobile-first UI", () => {
     expect(html).toContain('id="quest-tracker"');
     expect(html).toContain('id="quest-tracker-minimize"');
     expect(html).toContain('id="backup-load-input"');
+    expect(html).toContain('id="menu-exit-button"');
+    expect(html).not.toContain('data-menu-page="options"');
   });
 
   it("places development controls in a Debug menu page after Save / Load", () => {

@@ -482,7 +482,7 @@ button[aria-pressed="true"] {
 
 .menu-shell {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   width: min(760px, 100%);
   height: min(520px, calc(100vh - 24px));
   overflow: hidden;
@@ -541,6 +541,17 @@ button[aria-pressed="true"] {
   overflow: auto;
   padding: 14px;
   overscroll-behavior: contain;
+}
+
+.menu-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 10px 10px;
+  border-top: 1px solid rgb(244 239 232 / 0.14);
+}
+
+.menu-exit-button {
+  min-width: 92px;
 }
 
 .menu-section-title {
