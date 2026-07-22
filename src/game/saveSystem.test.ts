@@ -16,7 +16,11 @@ describe("backup save format", () => {
       inventory: [],
       equipment: createDefaultEquipment(),
       status: createDefaultStatus(),
-      flags: { dayWarningSeen: false }
+      flags: {
+        dayWarningSeen: false,
+        firstDayOpeningCompleted: false,
+        brutusIntroTutorialCompleted: false
+      }
     };
     expect(parseBackupSave(serializeBackupSave(state))).toEqual(state);
   });
@@ -64,6 +68,24 @@ describe("backup save format", () => {
       expect(canUseQuestTransition(restored.quest, transitionId)).toBe(true);
     }
   });
+
+  it("preserves first-playthrough completion flags and treats older saves as already introduced", () => {
+    const current = savedState({ mode: "stay", commandPose: "lay" });
+    current.flags = {
+      dayWarningSeen: false,
+      firstDayOpeningCompleted: false,
+      brutusIntroTutorialCompleted: false
+    };
+    expect(parseBackupSave(serializeBackupSave(current)).flags).toEqual(current.flags);
+
+    const older = savedState({ mode: "follow", commandPose: null });
+    older.flags = { dayWarningSeen: false } as never;
+    expect(parseBackupSave(serializeBackupSave(older)).flags).toEqual({
+      dayWarningSeen: false,
+      firstDayOpeningCompleted: true,
+      brutusIntroTutorialCompleted: true
+    });
+  });
 });
 
 function savedState(companion: { mode: "follow" | "stay"; commandPose?: "sit" | "lay" | null }) {
@@ -82,6 +104,10 @@ function savedState(companion: { mode: "follow" | "stay"; commandPose?: "sit" | 
     inventory: [],
     equipment: createDefaultEquipment(),
     status: createDefaultStatus(),
-    flags: { dayWarningSeen: false }
+    flags: {
+      dayWarningSeen: false,
+      firstDayOpeningCompleted: true,
+      brutusIntroTutorialCompleted: true
+    }
   };
 }

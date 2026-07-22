@@ -562,15 +562,15 @@
     {
       "id": "spawn_home_player_default",
       "tile_point": {
-        "x": 14.5,
-        "y": 37.5
+        "x": 16.5,
+        "y": 9.5
       },
       "pixel_point": {
-        "x": 464,
-        "y": 1200
+        "x": 528,
+        "y": 304
       },
       "kind": "player",
-      "facing": "north"
+      "facing": "east"
     }
   ],
   "npc_spawn_markers": [

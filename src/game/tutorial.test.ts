@@ -1,45 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { createQuestState, markQuestMovementStarted } from "./quest";
-import {
-  createTutorialState,
-  dismissActiveTutorial,
-  isTutorialBlockingGameplay,
-  maybeOpenInteractionTutorial,
-  TUTORIAL_CONTENT
-} from "./tutorial";
+import { OPENING_TUTORIAL_SEQUENCE, TUTORIAL_CONTENT } from "./tutorial";
 
-const fridgeMarkers = [{ x: 752, y: 912, tileX: 23, tileY: 28 }];
+describe("first-playthrough tutorial content", () => {
+  it("presents four short mobile-first opening windows in order", () => {
+    expect(OPENING_TUTORIAL_SEQUENCE).toEqual(["movement", "quest_interaction", "actions", "menu"]);
 
-describe("tutorial popup state", () => {
-  it("opens the movement tutorial before play and dismisses it", () => {
-    const state = createTutorialState();
+    for (const id of OPENING_TUTORIAL_SEQUENCE) {
+      const tutorial = TUTORIAL_CONTENT[id];
+      expect(tutorial.body).toHaveLength(1);
+      expect(tutorial.buttonLabel).toBe("Continue");
+      expect(tutorial.body[0]).not.toMatch(/WASD|arrow keys|press E/i);
+    }
 
-    expect(state.active).toBe("movement");
-    expect(TUTORIAL_CONTENT.movement.title).toBe("Move Lulu");
-    expect(TUTORIAL_CONTENT.movement.body).toEqual(["Drag on the left side of the screen to move."]);
-    expect(TUTORIAL_CONTENT.movement.body.join(" ")).not.toMatch(/desktop|WASD|arrow/i);
-    expect(isTutorialBlockingGameplay(state)).toBe(true);
-
-    const dismissed = dismissActiveTutorial(state);
-    expect(dismissed.active).toBeNull();
-    expect(dismissed.movementDismissed).toBe(true);
-    expect(isTutorialBlockingGameplay(dismissed)).toBe(false);
+    expect(TUTORIAL_CONTENT.movement.body[0]).toContain("joystick");
+    expect(TUTORIAL_CONTENT.quest_interaction.body[0]).toContain("❕");
+    expect(TUTORIAL_CONTENT.actions.body[0]).toContain("Actions");
+    expect(TUTORIAL_CONTENT.menu.body[0]).toContain("save/load");
   });
 
-  it("opens the interaction tutorial once when Lulu nears the fridge objective", () => {
-    let tutorial = dismissActiveTutorial(createTutorialState());
-    const quest = markQuestMovementStarted(createQuestState());
-
-    expect(maybeOpenInteractionTutorial(tutorial, quest, { x: 40, y: 40 }, fridgeMarkers, 42)).toBe(tutorial);
-
-    tutorial = maybeOpenInteractionTutorial(tutorial, quest, { x: 750, y: 910 }, fridgeMarkers, 42);
-    expect(tutorial.active).toBe("interaction");
-    expect(TUTORIAL_CONTENT.interaction.title).toBe("Interact");
-    expect(TUTORIAL_CONTENT.interaction.body).toEqual(["Tap the ❕ marker to interact."]);
-    expect(TUTORIAL_CONTENT.interaction.body.join(" ")).not.toMatch(/desktop|press E|keyboard/i);
-
-    tutorial = dismissActiveTutorial(tutorial);
-    expect(tutorial.interactionDismissed).toBe(true);
-    expect(maybeOpenInteractionTutorial(tutorial, quest, { x: 750, y: 910 }, fridgeMarkers, 42)).toBe(tutorial);
+  it("describes only existing Brutus companion actions", () => {
+    expect(TUTORIAL_CONTENT.brutus.body).toEqual([
+      "Use Actions near Brutus to pet or feed him, or tell him to Follow, Sit / Stay, Lie Down, and Fetch."
+    ]);
   });
 });

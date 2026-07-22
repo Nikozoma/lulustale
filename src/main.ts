@@ -16,6 +16,7 @@ import {
   useFries,
   type TurnBasedBattleState
 } from "./game/combat";
+import { createBattleBackdrop, type BattleBackdrop } from "./game/battlePresentation";
 import { loadCharacterAssets } from "./game/characterAssets";
 import {
   beginCompanionCommand,
@@ -26,6 +27,7 @@ import {
   getFetchToyPosition,
   resetCompanionForMap,
   restoreCompanionCommandState,
+  setCompanionIntroRestState,
   updateCompanion,
   type CompanionActionName,
   type CompanionInteractionName
@@ -108,6 +110,7 @@ import { getNpcDialogue, type DialogueLine } from "./game/npcDialogue";
 import { createPlayer, updatePlayer, type Facing } from "./game/player";
 import { DEFAULT_QUEST_TRAIL_ENABLED, findQuestTrailPath } from "./game/questTrail";
 import { FoundationRenderer } from "./game/renderer";
+import { OPENING_TUTORIAL_SEQUENCE, TUTORIAL_CONTENT, type TutorialPopupId } from "./game/tutorial";
 import { applyLogicalViewport, calculateLogicalViewport, type LogicalViewport } from "./game/viewport";
 import type { VisualPhase } from "./game/visual";
 import {
@@ -140,6 +143,7 @@ const brutusActionEntry = requireElement<HTMLButtonElement>("#brutus-action-entr
 const companionActionMenu = requireElement<HTMLDivElement>("#companion-action-menu");
 const companionActionButtons = [...companionActionMenu.querySelectorAll<HTMLButtonElement>("button[data-companion-action]")];
 const worldChatBubble = requireElement<HTMLDivElement>("#world-chat-bubble");
+const screenFade = requireElement<HTMLDivElement>("#screen-fade");
 const menuPanel = requireElement<HTMLElement>("#main-menu");
 const menuClose = requireElement<HTMLButtonElement>("#menu-close");
 const menuTabs = requireElement<HTMLElement>("#menu-tabs");
@@ -159,8 +163,14 @@ const minigamePanel = requireElement<HTMLElement>("#minigame-panel");
 const minigameText = requireElement<HTMLDivElement>("#minigame-text");
 const minigameButtons = [...document.querySelectorAll<HTMLButtonElement>("#minigame-arrows button")];
 const battlePanel = requireElement<HTMLElement>("#battle-panel");
+const battleShell = requireElementFrom<HTMLElement>(battlePanel, ".battle-shell");
+const battleLocation = requireElement<HTMLDivElement>("#battle-location");
+const battleTurn = requireElement<HTMLHeadingElement>("#battle-turn");
+const battleScene = requireElement<HTMLDivElement>("#battle-scene");
 const battleEnemies = requireElement<HTMLDivElement>("#battle-enemies");
 const battleRound = requireElement<HTMLDivElement>("#battle-round");
+const battlePlayerCombatant = requireElement<HTMLDivElement>("#battle-player-combatant");
+const battlePlayerDamage = requireElement<HTMLSpanElement>("#battle-player-damage");
 const battlePlayerHp = requireElement<HTMLDivElement>("#battle-player-hp");
 const battlePlayerHpFill = requireElement<HTMLDivElement>("#battle-player-hp-fill");
 const battleLog = requireElement<HTMLDivElement>("#battle-log");
@@ -180,6 +190,12 @@ const BIRD_GANG_DESIGN_POINT = { x: 87.5 * 32, y: 48.5 * 32 }; // Nearest open p
 
 type MenuPage = "status" | "equipment" | "inventory" | "quest" | "map" | "save" | "debug";
 type ActiveWorldBubble = { position: WorldPoint; text: string; expiresAt: number };
+type BattleFeedback = {
+  acting: "player" | "enemies" | null;
+  targetId: "player" | string | null;
+  amount: number | null;
+  kind: "damage" | "heal" | "defend" | null;
+};
 
 function requireElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -210,6 +226,7 @@ let lastFullscreenActive = false;
 let runtimeDisplayRefresh: (() => void) | null = null;
 let runtimeResetMovementInput: (() => void) | null = null;
 let runtimePrepareExit: (() => void) | null = null;
+let runtimeBeginOpening: (() => Promise<void>) | null = null;
 
 type AppDisplayMode = "fullscreen" | "standalone" | "browser";
 
@@ -379,6 +396,9 @@ async function start(): Promise<void> {
     loadWorldActorAssets()
   ]);
   const restoredSave = readAutosave();
+  const firstDayOpeningPending = restoredSave?.flags.firstDayOpeningCompleted !== true;
+  screenFade.hidden = !firstDayOpeningPending;
+  screenFade.classList.toggle("is-opaque", firstDayOpeningPending);
   let quest = restoredSave?.quest ?? createDemoQuestState();
   let activeMap = requireMap(maps, restoredSave?.mapId ?? "home");
   let phase: VisualPhase = restoredSave?.phase ?? quest.phase;
@@ -406,6 +426,7 @@ async function start(): Promise<void> {
     companion.pathHistory = [{ ...companion.position }, { ...player.position }];
   } else {
     resetCompanionForMap(companion, activeMap, player.position, homeCompanionAnchor?.pixel_point);
+    if (firstDayOpeningPending) setCompanionIntroRestState(companion);
   }
   let inventory: InventoryEntry[] = restoredSave?.inventory ?? rebuildInventoryFromQuest(quest);
   let equipment: EquipmentState = restoredSave?.equipment ?? createEquipmentFromQuest(quest);
@@ -452,6 +473,8 @@ async function start(): Promise<void> {
   let lastCamera: WorldPoint = { x: 0, y: 0 };
   let messageTime = 0;
   let dayWarningSeen = restoredSave?.flags.dayWarningSeen ?? false;
+  let firstDayOpeningCompleted = restoredSave?.flags.firstDayOpeningCompleted ?? false;
+  let brutusIntroTutorialCompleted = restoredSave?.flags.brutusIntroTutorialCompleted ?? false;
   let menuOpen = false;
   let actionMenuOpen = false;
   let companionMenuOpen = false;
@@ -463,6 +486,9 @@ async function start(): Promise<void> {
   let battleState: TurnBasedBattleState | null = null;
   let battleMenuMode: "commands" | "targets" | "items" = "commands";
   let battleResolving = false;
+  let battleSelectedTargetId: string | null = null;
+  let battleBackdrop: BattleBackdrop | null = null;
+  let battleFeedback: BattleFeedback | null = null;
 
   runtimeResetMovementInput = () => input.resetMovementInput();
   runtimePrepareExit = () => {
@@ -481,6 +507,7 @@ async function start(): Promise<void> {
     portraitPaused = deriveBootView(getBootEnvironment()).gameplayPaused;
     lastTime = performance.now();
   };
+  runtimeBeginOpening = () => runFreshDay1Opening();
   window.addEventListener("keydown", (event) => {
     if (event.repeat) return;
     if (event.code === "F3") {
@@ -569,14 +596,11 @@ async function start(): Promise<void> {
   battleAttackButton.addEventListener("click", () => {
     if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
     battleMenuMode = "targets";
+    battleSelectedTargetId = livingEnemies(battleState)[0]?.id ?? null;
     renderBattle();
   });
   battleDefendButton.addEventListener("click", () => {
-    if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
-    battleState = defendInBattle(battleState).state;
-    battleMenuMode = "commands";
-    renderBattle();
-    void runEnemyBattleTurn();
+    void performBattleDefend();
   });
   battleItemButton.addEventListener("click", () => {
     if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
@@ -597,6 +621,7 @@ async function start(): Promise<void> {
     const systemButton = (event.target as Element).closest<HTMLButtonElement>("button[data-battle-system]");
     if (systemButton?.dataset.battleSystem === "back") {
       battleMenuMode = "commands";
+      battleSelectedTargetId = null;
       renderBattle();
     } else if (systemButton?.dataset.battleSystem === "continue") {
       void finishBattleVictory();
@@ -604,6 +629,8 @@ async function start(): Promise<void> {
       restartBirdGangBattle();
     }
   });
+  battleSubmenu.addEventListener("focusin", (event) => selectBattleTargetFromElement(event.target));
+  battleSubmenu.addEventListener("pointerover", (event) => selectBattleTargetFromElement(event.target));
 
   runtimeDisplayRefresh();
   updateHud();
@@ -631,7 +658,7 @@ async function start(): Promise<void> {
       inventory: inventory.map((entry) => ({ ...entry })),
       equipment: { ...equipment },
       status: { ...playerStatus },
-      flags: { dayWarningSeen }
+      flags: { dayWarningSeen, firstDayOpeningCompleted, brutusIntroTutorialCompleted }
     };
   }
 
@@ -643,6 +670,48 @@ async function start(): Promise<void> {
     } catch (error) {
       console.warn("Unable to write Lulu's Tale autosave.", error);
     }
+  }
+
+  async function runFreshDay1Opening(): Promise<void> {
+    if (firstDayOpeningCompleted) {
+      screenFade.classList.remove("is-opaque");
+      screenFade.hidden = true;
+      return;
+    }
+
+    input.resetMovementInput();
+    closeActionMenu();
+    busy = true;
+    screenFade.hidden = false;
+    screenFade.classList.add("is-opaque");
+    updateControls();
+    try {
+      await showDialogue([{ speaker: "Alarm", text: "BEEP! BEEP! BEEP!" }]);
+      await fadeFromBlack();
+      await showDialogue([
+        { speaker: "Lulu", text: "I just woke up... and I'm starving." },
+        { speaker: "Lulu", text: "I should check the fridge and find something for me and Brutus." }
+      ]);
+      for (const tutorialId of OPENING_TUTORIAL_SEQUENCE) {
+        await showTutorial(tutorialId);
+      }
+      firstDayOpeningCompleted = true;
+      persistAutosave();
+    } finally {
+      busy = false;
+      screenFade.classList.remove("is-opaque");
+      screenFade.hidden = true;
+      updateHud();
+    }
+  }
+
+  async function showTutorial(tutorialId: TutorialPopupId): Promise<void> {
+    const tutorial = TUTORIAL_CONTENT[tutorialId];
+    await showDialogue(
+      tutorial.body.map((text) => ({ speaker: tutorial.title, text })),
+      [],
+      tutorial.buttonLabel
+    );
   }
 
   function openMenu(page: MenuPage): void {
@@ -869,6 +938,7 @@ async function start(): Promise<void> {
     busy = true;
     updateControls();
     status.textContent = "Resetting Day 1…";
+    let replayOpening = false;
     try {
       const home = requireMap(maps, "home");
       const reset = createDay1ResetSnapshot(home);
@@ -884,13 +954,18 @@ async function start(): Promise<void> {
       inventory = reset.inventory.map((entry) => ({ ...entry }));
       equipment = { ...reset.equipment };
       playerStatus = { ...reset.status };
-      dayWarningSeen = false;
+      dayWarningSeen = reset.flags.dayWarningSeen;
+      firstDayOpeningCompleted = reset.flags.firstDayOpeningCompleted;
+      brutusIntroTutorialCompleted = reset.flags.brutusIntroTutorialCompleted;
       primaryBirdPosition = null;
       ambushOrigin = null;
       ambushRunning = false;
       battleState = null;
       battleResolving = false;
       battleMenuMode = "commands";
+      battleSelectedTargetId = null;
+      battleBackdrop = null;
+      battleFeedback = null;
       activeWorldBubble = null;
       worldChatBubble.hidden = true;
       dialoguePanel.hidden = true;
@@ -901,12 +976,13 @@ async function start(): Promise<void> {
       menuOpen = false;
       menuPanel.hidden = true;
       persistAutosave();
-      setMessage("Day 1 questline reset and saved.", 3);
+      replayOpening = true;
     } finally {
       busy = false;
       status.textContent = "";
       updateHud();
     }
+    if (replayOpening) await runFreshDay1Opening();
   }
 
   function currentLocationLabel(): string {
@@ -1038,14 +1114,14 @@ async function start(): Promise<void> {
       button.disabled = busy || storyBusy || menuOpen || !target;
     }
     updateCompanionActionMenu();
-    const brutusAvailable = phase === "day" && distance(player.position, companion.position) <= INTERACTION_RADIUS + 18;
+    const brutusAvailable = quest.dogFed && phase === "day" && distance(player.position, companion.position) <= INTERACTION_RADIUS + 18;
     brutusActionEntry.hidden = companionMenuOpen || !brutusAvailable;
     brutusActionEntry.disabled = busy || storyBusy || menuOpen || !brutusAvailable;
     companionActionMenu.hidden = !companionMenuOpen;
   }
 
   function updateCompanionActionMenu(): void {
-    const nearby = phase === "day" && distance(player.position, companion.position) <= INTERACTION_RADIUS + 18;
+    const nearby = quest.dogFed && phase === "day" && distance(player.position, companion.position) <= INTERACTION_RADIUS + 18;
     for (const button of companionActionButtons) {
       const action = button.dataset.companionAction as CompanionActionName;
       const alreadyFollowing = action === "follow" && companion.mode === "follow";
@@ -1123,7 +1199,7 @@ async function start(): Promise<void> {
   }
 
   async function runCompanionAction(action: CompanionActionName): Promise<void> {
-    if (!canUseInput() || phase === "night") return;
+    if (!canUseInput() || phase === "night" || !quest.dogFed) return;
     closeActionMenu();
     if (action === "pet") {
       await startInteraction("petting");
@@ -1194,10 +1270,55 @@ async function start(): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
 
+  function nextFrame(): Promise<void> {
+    return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+  }
+
+  async function fadeToBlack(): Promise<void> {
+    screenFade.hidden = false;
+    screenFade.classList.remove("is-opaque");
+    await nextFrame();
+    screenFade.classList.add("is-opaque");
+    await wait(540);
+  }
+
+  async function fadeFromBlack(): Promise<void> {
+    screenFade.hidden = false;
+    screenFade.classList.add("is-opaque");
+    await nextFrame();
+    screenFade.classList.remove("is-opaque");
+    await wait(540);
+    screenFade.hidden = true;
+  }
+
+  async function runSleepWakeTransition(operation: () => Promise<void>): Promise<void> {
+    input.resetMovementInput();
+    closeActionMenu();
+    busy = true;
+    updateControls();
+    try {
+      await fadeToBlack();
+      await operation();
+      busy = true;
+      updateControls();
+      await fadeFromBlack();
+    } finally {
+      busy = false;
+      screenFade.classList.remove("is-opaque");
+      screenFade.hidden = true;
+      updateHud();
+    }
+  }
+
   async function startInteraction(name: CompanionInteractionName): Promise<void> {
     if (!canUseInput()) return;
     if (phase === "night") {
       setMessage("Brutus is inside for the night.");
+      return;
+    }
+    const introductoryFeeding = name === "feeding" && quest.stage === "feed_brutus" && quest.hasDogFood;
+    if (!quest.dogFed && !introductoryFeeding) {
+      setMessage("Brutus is waiting for breakfast.");
       return;
     }
     const result = beginCompanionInteraction(name, companion, player, activeMap, characters.interactions);
@@ -1213,6 +1334,10 @@ async function start(): Promise<void> {
         { speaker: "Brutus", text: "[the sound of a bowl becoming somebody else's problem]" },
         { speaker: "Lulu", text: "Great. Now I want fries." }
       ]);
+      if (!brutusIntroTutorialCompleted) {
+        await showTutorial("brutus");
+        brutusIntroTutorialCompleted = true;
+      }
     } else {
       setMessage(name === "petting" ? "Petting Brutus" : name === "feeding" ? "Feeding Brutus" : "Companion command", 1.1);
     }
@@ -1318,8 +1443,10 @@ async function start(): Promise<void> {
           { speaker: "Lulu", text: "That was enough municipal bird politics for one night." },
           { speaker: "System", text: "Lulu finally gets some sleep." }
         ]);
-        quest = sleepAfterNight(quest);
-        await setPhase(quest.phase);
+        await runSleepWakeTransition(async () => {
+          quest = sleepAfterNight(quest);
+          await setPhase(quest.phase);
+        });
         await showDialogue([
           { speaker: "DAY 2", text: "THE BIRDS WILL REMEMBER THIS." },
           { speaker: "Lulu", text: "Is that a receipt?" },
@@ -1361,13 +1488,17 @@ async function start(): Promise<void> {
       ]
     );
     if (choice === "cancel" || !choice) return;
-    quest = chooseDayEnd(quest, choice as BedChoice);
-    await setPhase(quest.phase);
     if (choice === "sleep") {
+      await runSleepWakeTransition(async () => {
+        quest = chooseDayEnd(quest, "sleep");
+        await setPhase(quest.phase);
+      });
       await showDialogue([
         { speaker: "System", text: `Day ${quest.day}. The night bird thread is still waiting whenever Lulu decides to stay up.` }
       ]);
     } else {
+      quest = chooseDayEnd(quest, choice as BedChoice);
+      await setPhase(quest.phase);
       await showDialogue([{ speaker: "System", text: "Night settles over the neighborhood." }]);
     }
   }
@@ -1394,8 +1525,11 @@ async function start(): Promise<void> {
       },
       friesCount
     );
+    battleBackdrop = createBattleBackdrop(activeMap, activeVisual.definition, player.position);
     battleMenuMode = "commands";
     battleResolving = false;
+    battleSelectedTargetId = null;
+    battleFeedback = null;
     battlePanel.hidden = false;
     renderBattle();
     updateControls();
@@ -1404,22 +1538,66 @@ async function start(): Promise<void> {
 
   async function performBattleAttack(enemyId: string): Promise<void> {
     if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
-    battleState = attackEnemy(battleState, enemyId).state;
+    const targetBefore = battleState.enemies.find((enemy) => enemy.id === enemyId && enemy.hp > 0);
+    if (!targetBefore) return;
+    battleResolving = true;
+    const next = attackEnemy(battleState, enemyId).state;
+    const targetAfter = next.enemies.find((enemy) => enemy.id === enemyId);
+    battleState = next;
     battleMenuMode = "commands";
+    battleSelectedTargetId = null;
+    battleFeedback = {
+      acting: "player",
+      targetId: enemyId,
+      amount: Math.max(0, targetBefore.hp - (targetAfter?.hp ?? targetBefore.hp)),
+      kind: "damage"
+    };
+    renderBattle();
+    await wait(440);
+    battleFeedback = null;
+    battleResolving = false;
+    renderBattle();
+    if (battleState.phase === "enemy_turn") await runEnemyBattleTurn();
+  }
+
+  async function performBattleDefend(): Promise<void> {
+    if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
+    battleResolving = true;
+    battleState = defendInBattle(battleState).state;
+    battleMenuMode = "commands";
+    battleSelectedTargetId = null;
+    battleFeedback = { acting: "player", targetId: "player", amount: null, kind: "defend" };
+    renderBattle();
+    await wait(320);
+    battleFeedback = null;
+    battleResolving = false;
     renderBattle();
     if (battleState.phase === "enemy_turn") await runEnemyBattleTurn();
   }
 
   async function performBattleItem(): Promise<void> {
     if (!battleState || battleState.phase !== "player_turn" || battleResolving) return;
+    const hpBefore = battleState.player.hp;
     const result = useFries(battleState);
     if (result.state === battleState) {
       battleMenuMode = "commands";
       renderBattle();
       return;
     }
+    battleResolving = true;
     battleState = result.state;
     battleMenuMode = "commands";
+    battleSelectedTargetId = null;
+    battleFeedback = {
+      acting: "player",
+      targetId: "player",
+      amount: Math.max(0, battleState.player.hp - hpBefore),
+      kind: "heal"
+    };
+    renderBattle();
+    await wait(440);
+    battleFeedback = null;
+    battleResolving = false;
     renderBattle();
     if (battleState.phase === "enemy_turn") await runEnemyBattleTurn();
   }
@@ -1427,10 +1605,21 @@ async function start(): Promise<void> {
   async function runEnemyBattleTurn(): Promise<void> {
     if (!battleState || battleState.phase !== "enemy_turn" || battleResolving) return;
     battleResolving = true;
+    battleFeedback = { acting: "enemies", targetId: null, amount: null, kind: null };
     renderBattle();
-    await wait(650);
+    await wait(360);
     if (!battleState) return;
+    const hpBefore = battleState.player.hp;
     battleState = resolveEnemyTurn(battleState);
+    battleFeedback = {
+      acting: null,
+      targetId: "player",
+      amount: Math.max(0, hpBefore - battleState.player.hp),
+      kind: "damage"
+    };
+    renderBattle();
+    await wait(420);
+    battleFeedback = null;
     battleResolving = false;
     renderBattle();
   }
@@ -1452,6 +1641,8 @@ async function start(): Promise<void> {
     );
     battleMenuMode = "commands";
     battleResolving = false;
+    battleSelectedTargetId = null;
+    battleFeedback = null;
     renderBattle();
   }
 
@@ -1469,6 +1660,9 @@ async function start(): Promise<void> {
     };
     quest = winBirdGangBattle(quest);
     battleState = null;
+    battleBackdrop = null;
+    battleFeedback = null;
+    battleSelectedTargetId = null;
     battlePanel.hidden = true;
     battleSubmenu.replaceChildren();
     battleResolving = false;
@@ -1489,61 +1683,132 @@ async function start(): Promise<void> {
       return;
     }
 
+    const backdrop = battleBackdrop ?? createBattleBackdrop(activeMap, activeVisual.definition, player.position);
+    battleBackdrop = backdrop;
     battlePanel.hidden = false;
-    battleRound.textContent = battleState.phase === "victory" ? "Victory" : battleState.phase === "defeat" ? "Defeat" : `Round ${battleState.round}`;
+    battleScene.dataset.theme = backdrop.theme;
+    battleScene.style.setProperty("--battle-backdrop-image", `url("${backdrop.assetHref}")`);
+    battleScene.style.setProperty("--battle-backdrop-position", backdrop.backgroundPosition);
+    battleScene.style.setProperty("--battle-backdrop-size", backdrop.backgroundSize);
+    battleLocation.textContent = backdrop.locationLabel;
+    battleTurn.textContent =
+      battleState.phase === "victory"
+        ? "Victory!"
+        : battleState.phase === "defeat"
+          ? "Lulu Fell"
+          : battleState.phase === "enemy_turn" || battleFeedback?.acting === "enemies"
+            ? "Enemy Turn"
+            : battleMenuMode === "targets"
+              ? "Choose a Target"
+              : battleMenuMode === "items"
+                ? "Choose an Item"
+                : "Lulu's Turn";
+    battleRound.textContent = `Round ${battleState.round}`;
+    battleShell.classList.toggle("is-victory", battleState.phase === "victory");
+    battleShell.classList.toggle("is-defeat", battleState.phase === "defeat");
     battlePlayerHp.textContent = `HP ${battleState.player.hp} / ${battleState.player.maxHp}`;
     battlePlayerHpFill.style.width = `${Math.max(0, (battleState.player.hp / battleState.player.maxHp) * 100)}%`;
     battlePlayerHpFill.style.background = battleState.player.hp <= battleState.player.maxHp * 0.3 ? "#e25a4f" : "#71d26d";
+    battlePlayerCombatant.classList.toggle("is-acting", battleFeedback?.acting === "player" && battleFeedback.kind === "damage");
+    battlePlayerCombatant.classList.toggle("is-hit", battleFeedback?.targetId === "player" && battleFeedback.kind === "damage");
+    battlePlayerCombatant.classList.toggle("is-defending", battleState.player.defending || battleFeedback?.kind === "defend");
+    const playerFeedbackVisible = battleFeedback?.targetId === "player" && battleFeedback.amount !== null;
+    battlePlayerDamage.hidden = !playerFeedbackVisible;
+    battlePlayerDamage.classList.toggle("is-heal", battleFeedback?.kind === "heal");
+    battlePlayerDamage.textContent = playerFeedbackVisible
+      ? `${battleFeedback?.kind === "heal" ? "+" : "−"}${battleFeedback?.amount}`
+      : "";
+
+    const living = livingEnemies(battleState);
+    if (battleSelectedTargetId && !living.some((enemy) => enemy.id === battleSelectedTargetId)) {
+      battleSelectedTargetId = living[0]?.id ?? null;
+    }
 
     battleEnemies.innerHTML = battleState.enemies
       .map((enemy) => {
         const hpPercent = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
-        return `<div class="battle-enemy-card${enemy.hp <= 0 ? " is-defeated" : ""}">
-          <div class="battle-enemy-name">${enemy.name}</div>
+        const classes = [
+          "battle-combatant",
+          "battle-enemy-combatant",
+          enemy.hp <= 0 ? "is-defeated" : "",
+          battleMenuMode === "targets" && enemy.id === battleSelectedTargetId ? "is-targeted" : "",
+          battleFeedback?.acting === "enemies" && enemy.hp > 0 ? "is-acting" : "",
+          battleFeedback?.targetId === enemy.id ? "is-hit" : ""
+        ].filter(Boolean).join(" ");
+        const damage = battleFeedback?.targetId === enemy.id && battleFeedback.amount !== null
+          ? `<span class="battle-damage-number">−${battleFeedback.amount}</span>`
+          : "";
+        return `<div class="${classes}" data-battle-combatant="${enemy.id}">
           <div class="battle-sprite" style="background-image:url('${enemy.spritePath}');background-position:0 -192px"></div>
-          <div class="battle-hp-label">HP ${enemy.hp} / ${enemy.maxHp}</div>
-          <div class="battle-hp-track"><div class="battle-hp-fill" style="width:${hpPercent}%"></div></div>
+          ${damage}
+          <div class="battle-enemy-status">
+            <div class="battle-enemy-name">${enemy.name}</div>
+            <div class="battle-hp-label">HP ${enemy.hp} / ${enemy.maxHp}</div>
+            <div class="battle-hp-track"><div class="battle-hp-fill" style="width:${hpPercent}%"></div></div>
+          </div>
         </div>`;
       })
       .join("");
 
-    battleLog.innerHTML = battleState.log.map((line) => `<div>${line}</div>`).join("");
-    battleLog.scrollTop = battleLog.scrollHeight;
+    battleLog.innerHTML = battleState.log.slice(-2).map((line) => `<div>${line}</div>`).join("");
 
     const playerTurn = battleState.phase === "player_turn" && !battleResolving;
     battleCommandPanel.hidden = !playerTurn || battleMenuMode !== "commands";
     battleAttackButton.disabled = !playerTurn || livingEnemies(battleState).length === 0;
     battleDefendButton.disabled = !playerTurn;
     battleItemButton.disabled = !playerTurn;
-    battleItemButton.textContent = `Item (${battleState.inventory.fries})`;
+    battleItemButton.textContent = "Item";
 
     battleSubmenu.replaceChildren();
-    battleSubmenu.hidden = false;
+    battleSubmenu.hidden = true;
 
+    if (battleResolving || battleState.phase === "enemy_turn") {
+      battleSubmenu.hidden = false;
+      battleSubmenu.innerHTML = `<div class="battle-menu-note">${battleState.phase === "enemy_turn" ? "The bird gang is taking its turn…" : "Resolving action…"}</div>`;
+      return;
+    }
     if (battleState.phase === "victory") {
+      battleSubmenu.hidden = false;
       battleSubmenu.innerHTML = '<button type="button" data-battle-system="continue">Continue</button>';
       return;
     }
     if (battleState.phase === "defeat") {
+      battleSubmenu.hidden = false;
       battleSubmenu.innerHTML = '<button type="button" data-battle-system="retry">Try Again</button>';
       return;
     }
-    if (battleState.phase === "enemy_turn" || battleResolving) {
-      battleSubmenu.innerHTML = '<div class="menu-card menu-muted">The bird gang is taking its turn…</div>';
-      return;
-    }
     if (battleMenuMode === "targets") {
-      battleSubmenu.innerHTML = livingEnemies(battleState)
-        .map((enemy) => `<button class="battle-target-button" type="button" data-battle-target="${enemy.id}">${enemy.name}<span>HP ${enemy.hp}/${enemy.maxHp}</span></button>`)
+      battleSubmenu.hidden = false;
+      battleSubmenu.innerHTML = living
+        .map((enemy) => `<button class="battle-target-button" type="button" data-battle-target="${enemy.id}" aria-pressed="${enemy.id === battleSelectedTargetId}">${enemy.name}<span>HP ${enemy.hp}/${enemy.maxHp}</span></button>`)
         .join("") + '<button type="button" data-battle-system="back">Back</button>';
+      updateBattleTargetHighlight();
       return;
     }
     if (battleMenuMode === "items") {
       const canUseFries = battleState.inventory.fries > 0 && battleState.player.hp < battleState.player.maxHp;
-      battleSubmenu.innerHTML = `${canUseFries ? `<button type="button" data-battle-item="fries">Use Fries ×${battleState.inventory.fries}<span>Restore up to 8 HP</span></button>` : '<div class="menu-card menu-muted">No usable combat items right now.</div>'}<button type="button" data-battle-system="back">Back</button>`;
+      battleSubmenu.hidden = false;
+      battleSubmenu.innerHTML = `${canUseFries ? `<button class="battle-item-button" type="button" data-battle-item="fries">Use Fries ×${battleState.inventory.fries}<span>Restore up to 8 HP</span></button>` : '<div class="battle-menu-note">No usable combat items right now.</div>'}<button type="button" data-battle-system="back">Back</button>`;
       return;
     }
-    battleSubmenu.hidden = true;
+  }
+
+  function selectBattleTargetFromElement(target: EventTarget | null): void {
+    if (!(target instanceof Element) || !battleState || battleMenuMode !== "targets") return;
+    const button = target.closest<HTMLButtonElement>("button[data-battle-target]");
+    const enemyId = button?.dataset.battleTarget;
+    if (!enemyId || !livingEnemies(battleState).some((enemy) => enemy.id === enemyId)) return;
+    battleSelectedTargetId = enemyId;
+    updateBattleTargetHighlight();
+  }
+
+  function updateBattleTargetHighlight(): void {
+    battleEnemies.querySelectorAll<HTMLElement>("[data-battle-combatant]").forEach((combatant) => {
+      combatant.classList.toggle("is-targeted", combatant.dataset.battleCombatant === battleSelectedTargetId);
+    });
+    battleSubmenu.querySelectorAll<HTMLButtonElement>("button[data-battle-target]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.battleTarget === battleSelectedTargetId));
+    });
   }
 
   async function runBirdAmbush(): Promise<void> {
@@ -1605,8 +1870,11 @@ async function start(): Promise<void> {
 
   async function showDialogue(
     lines: DialogueLine[],
-    choices: Array<{ id: string; label: string }> = []
+    choices: Array<{ id: string; label: string }> = [],
+    continueLabel = "Continue"
   ): Promise<string | null> {
+    input.resetMovementInput();
+    closeActionMenu();
     storyBusy = true;
     dialoguePanel.hidden = false;
     let index = 0;
@@ -1629,7 +1897,7 @@ async function start(): Promise<void> {
         }
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = isLast ? "Continue" : "Next";
+        button.textContent = isLast ? continueLabel : "Next";
         button.addEventListener("click", () => {
           if (isLast) finish(null);
           else {
@@ -1721,7 +1989,7 @@ async function start(): Promise<void> {
     for (const button of worldActionButtons) {
       button.disabled = busy || storyBusy || menuOpen || Boolean(battleState) || button.dataset.available !== "true";
     }
-    brutusActionEntry.disabled = uiBlocked || phase !== "day" || distance(player.position, companion.position) > INTERACTION_RADIUS + 18;
+    brutusActionEntry.disabled = uiBlocked || !quest.dogFed || phase !== "day" || distance(player.position, companion.position) > INTERACTION_RADIUS + 18;
     updateCompanionActionMenu();
   }
 
@@ -2044,6 +2312,7 @@ titlePlayButton.addEventListener("click", () => {
       titleScreen.classList.remove("is-loading");
       runtimeDisplayRefresh?.();
       syncBootUi();
+      await runtimeBeginOpening?.();
     } catch (error: unknown) {
       const text = error instanceof Error ? error.message : String(error);
       status.textContent = `Unable to start: ${text}`;

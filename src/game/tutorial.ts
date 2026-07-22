@@ -1,13 +1,4 @@
-import type { QuestState } from "./quest";
-import type { MarkerPosition, WorldPoint } from "./world";
-
-export type TutorialPopupId = "movement" | "interaction";
-
-export type TutorialState = {
-  active: TutorialPopupId | null;
-  movementDismissed: boolean;
-  interactionDismissed: boolean;
-};
+export type TutorialPopupId = "movement" | "quest_interaction" | "actions" | "menu" | "brutus";
 
 export type TutorialPopupContent = {
   title: string;
@@ -17,59 +8,35 @@ export type TutorialPopupContent = {
 
 export const TUTORIAL_CONTENT: Record<TutorialPopupId, TutorialPopupContent> = {
   movement: {
-    title: "Move Lulu",
-    body: ["Drag on the left side of the screen to move."],
-    buttonLabel: "Got it"
+    title: "Movement",
+    body: ["Move Lulu with the joystick."],
+    buttonLabel: "Continue"
   },
-  interaction: {
-    title: "Interact",
-    body: ["Tap the ❕ marker to interact."],
-    buttonLabel: "Got it"
+  quest_interaction: {
+    title: "Quest Interaction",
+    body: ["See the ❕ marker? Tap it when you're close to interact with your current objective."],
+    buttonLabel: "Continue"
+  },
+  actions: {
+    title: "Actions",
+    body: ["Use Actions near people, objects, or animals to see what Lulu can do."],
+    buttonLabel: "Continue"
+  },
+  menu: {
+    title: "Game Menu",
+    body: ["Open Menu for quests, inventory, equipment, maps, save/load, and debug options."],
+    buttonLabel: "Continue"
+  },
+  brutus: {
+    title: "Brutus Is Your Companion",
+    body: ["Use Actions near Brutus to pet or feed him, or tell him to Follow, Sit / Stay, Lie Down, and Fetch."],
+    buttonLabel: "Continue"
   }
 };
 
-export function createTutorialState(): TutorialState {
-  return {
-    active: "movement",
-    movementDismissed: false,
-    interactionDismissed: false
-  };
-}
-
-export function dismissActiveTutorial(state: TutorialState): TutorialState {
-  if (state.active === "movement") {
-    return { ...state, active: null, movementDismissed: true };
-  }
-
-  if (state.active === "interaction") {
-    return { ...state, active: null, interactionDismissed: true };
-  }
-
-  return state;
-}
-
-export function maybeOpenInteractionTutorial(
-  state: TutorialState,
-  quest: QuestState,
-  playerPosition: WorldPoint,
-  fridgeMarkers: MarkerPosition[],
-  triggerRadius: number
-): TutorialState {
-  if (state.active || state.interactionDismissed || quest.stage !== "get_food") {
-    return state;
-  }
-
-  return isNearAny(playerPosition, fridgeMarkers, triggerRadius) ? { ...state, active: "interaction" } : state;
-}
-
-export function isTutorialBlockingGameplay(state: TutorialState): boolean {
-  return state.active !== null;
-}
-
-function isNearAny(playerPosition: WorldPoint, positions: MarkerPosition[], radius: number): boolean {
-  return positions.some((position) => {
-    const dx = playerPosition.x - position.x;
-    const dy = playerPosition.y - position.y;
-    return Math.hypot(dx, dy) <= radius;
-  });
-}
+export const OPENING_TUTORIAL_SEQUENCE: readonly TutorialPopupId[] = [
+  "movement",
+  "quest_interaction",
+  "actions",
+  "menu"
+];

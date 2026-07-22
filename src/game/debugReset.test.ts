@@ -23,8 +23,13 @@ describe("Day 1 debug reset", () => {
     expect(reset.inventory).toEqual([]);
     expect(reset.equipment).toEqual({ weapon: null, body: null, accessory: null });
     expect(reset.status).toMatchObject({ level: 1, experience: 0, hp: 20, maxHp: 20 });
-    expect(reset.flags).toEqual({ dayWarningSeen: false });
-    expect(reset.companion).toMatchObject({ mode: "follow", commandPose: null });
+    expect(reset.flags).toEqual({
+      dayWarningSeen: false,
+      firstDayOpeningCompleted: false,
+      brutusIntroTutorialCompleted: false
+    });
+    expect(reset.player).toMatchObject({ position: { x: 528, y: 304 }, facing: "right" });
+    expect(reset.companion).toMatchObject({ mode: "stay", commandPose: "lay" });
     expect(canOccupy(home, reset.player.position, PLAYER.collider)).toBe(true);
     expect(canOccupy(home, reset.companion.position, BRUTUS.collider)).toBe(true);
     expect(parseBackupSave(serializeBackupSave(reset))).toEqual(reset);

@@ -728,23 +728,6 @@
   ],
   "foreground_occlusion_regions": [
     {
-      "id": "high_foreground::alpha_component_01",
-      "foreground_layer_id": "high_foreground",
-      "pixel_bbox": {
-        "x": 306,
-        "y": 251,
-        "width": 535,
-        "height": 107
-      },
-      "trigger_tile_rect": {
-        "x": 9,
-        "y": 7,
-        "width": 18,
-        "height": 5
-      },
-      "source": "nonzero_alpha_connected_component"
-    },
-    {
       "id": "high_foreground::alpha_component_02",
       "foreground_layer_id": "high_foreground",
       "pixel_bbox": {
@@ -859,23 +842,6 @@
         "x": 29,
         "y": 9,
         "width": 1,
-        "height": 2
-      },
-      "source": "nonzero_alpha_connected_component"
-    },
-    {
-      "id": "high_foreground::alpha_component_09",
-      "foreground_layer_id": "high_foreground",
-      "pixel_bbox": {
-        "x": 411,
-        "y": 251,
-        "width": 27,
-        "height": 10
-      },
-      "trigger_tile_rect": {
-        "x": 12,
-        "y": 7,
-        "width": 2,
         "height": 2
       },
       "source": "nonzero_alpha_connected_component"

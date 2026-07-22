@@ -69,6 +69,8 @@
 
       <div id="world-chat-bubble" class="world-chat-bubble" hidden aria-live="polite"></div>
 
+      <div id="screen-fade" class="screen-fade" hidden aria-hidden="true"></div>
+
       <div id="companion-actions" class="control-row">
         <button id="pet-button" type="button" hidden>Pet</button>
         <button id="feed-button" type="button" hidden>Feed</button>
@@ -126,33 +128,42 @@
       <section id="battle-panel" class="battle-overlay" hidden aria-label="Turn-based battle">
         <div class="battle-shell">
           <header class="battle-header">
-            <div>
-              <div class="battle-kicker">Night Encounter</div>
-              <h2>Bird Gang</h2>
+            <div class="battle-heading">
+              <div id="battle-location" class="battle-kicker">Overworld · Night</div>
+              <h2 id="battle-turn">Lulu's Turn</h2>
             </div>
             <div id="battle-round" class="battle-round">Round 1</div>
           </header>
 
-          <div class="battle-field">
-            <div id="battle-enemies" class="battle-enemies" aria-label="Enemies"></div>
-            <div class="battle-player-card">
-              <div class="battle-sprite battle-lulu-sprite" aria-label="Lulu"></div>
-              <div class="battle-player-copy">
+          <div id="battle-scene" class="battle-scene" data-theme="night">
+            <div id="battle-backdrop" class="battle-backdrop" aria-hidden="true"></div>
+            <div class="battle-scene-shade" aria-hidden="true"></div>
+            <div class="battle-ground" aria-hidden="true"></div>
+            <div class="battle-party battle-player-party" aria-label="Lulu's party">
+              <div id="battle-player-combatant" class="battle-combatant battle-player-combatant">
+                <div class="battle-sprite battle-lulu-sprite" aria-label="Lulu"></div>
+                <span id="battle-player-damage" class="battle-damage-number" hidden></span>
+              </div>
+              <div class="battle-player-status">
                 <strong>Lulu</strong>
                 <div id="battle-player-hp" class="battle-hp-label">HP 20 / 20</div>
                 <div class="battle-hp-track"><div id="battle-player-hp-fill" class="battle-hp-fill"></div></div>
               </div>
             </div>
+            <div id="battle-enemies" class="battle-party battle-enemy-party" aria-label="Enemies"></div>
           </div>
 
-          <div id="battle-log" class="battle-log" aria-live="polite"></div>
-
-          <div id="battle-command-panel" class="battle-command-panel">
-            <button id="battle-attack" type="button">Attack</button>
-            <button id="battle-defend" type="button">Defend</button>
-            <button id="battle-item" type="button">Item</button>
+          <div class="battle-console">
+            <div id="battle-log" class="battle-message" aria-live="polite"></div>
+            <div class="battle-menu-region">
+              <div id="battle-command-panel" class="battle-command-panel">
+                <button id="battle-attack" type="button">Attack</button>
+                <button id="battle-defend" type="button">Defend</button>
+                <button id="battle-item" type="button">Item</button>
+              </div>
+              <div id="battle-submenu" class="battle-submenu" hidden></div>
+            </div>
           </div>
-          <div id="battle-submenu" class="battle-submenu" hidden></div>
         </div>
       </section>
 

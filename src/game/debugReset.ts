@@ -1,9 +1,10 @@
-import { createCompanion, resetCompanionForMap } from "./companion";
+import { createCompanion, resetCompanionForMap, setCompanionIntroRestState } from "./companion";
 import { PLAYER } from "./constants";
 import { createDemoQuestState } from "./demoQuest";
 import { getSpawn, resolveSafeSpawn, type RuntimeMap } from "./foundation";
 import {
   SAVE_SCHEMA_VERSION,
+  createFreshGameFlags,
   createDefaultStatus,
   createEquipmentFromQuest,
   rebuildInventoryFromQuest,
@@ -22,6 +23,7 @@ export function createDay1ResetSnapshot(home: RuntimeMap, savedAt = new Date().t
     y: playerPosition.y + 36
   });
   resetCompanionForMap(companion, home, playerPosition, companionAnchor?.pixel_point);
+  setCompanionIntroRestState(companion);
 
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
@@ -42,7 +44,7 @@ export function createDay1ResetSnapshot(home: RuntimeMap, savedAt = new Date().t
     inventory: rebuildInventoryFromQuest(quest),
     equipment: createEquipmentFromQuest(quest),
     status: createDefaultStatus(),
-    flags: { dayWarningSeen: false }
+    flags: createFreshGameFlags()
   };
 }
 

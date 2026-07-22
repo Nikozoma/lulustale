@@ -96,6 +96,17 @@ export function restoreCompanionCommandState(
   companion.actionTime = 0;
 }
 
+export function setCompanionIntroRestState(companion: CompanionState): void {
+  companion.mode = "stay";
+  companion.commandPose = "lay";
+  companion.isMoving = false;
+  companion.isRunning = false;
+  companion.action = "lay_rest";
+  companion.actionTime = 0;
+  companion.interaction = null;
+  companion.fetch = null;
+}
+
 export function resetCompanionForMap(
   companion: CompanionState,
   map: RuntimeMap,

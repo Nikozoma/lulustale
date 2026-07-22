@@ -116,7 +116,26 @@ function normalizePersistentGameState(value: Record<string, unknown>): Persisten
           ...(value.status as Partial<PersistentGameState["status"]>)
         }
       : createDefaultStatus(),
-    flags: isRecord(value.flags) ? { dayWarningSeen: value.flags.dayWarningSeen === true } : { dayWarningSeen: false }
+    flags: normalizeFlags(value.flags)
+  };
+}
+
+function normalizeFlags(value: unknown): PersistentGameState["flags"] {
+  if (!isRecord(value)) {
+    return {
+      dayWarningSeen: false,
+      firstDayOpeningCompleted: true,
+      brutusIntroTutorialCompleted: true
+    };
+  }
+  return {
+    dayWarningSeen: value.dayWarningSeen === true,
+    // Saves created before these flags already represent an in-progress game,
+    // so they must not replay first-playthrough presentation on load.
+    firstDayOpeningCompleted:
+      typeof value.firstDayOpeningCompleted === "boolean" ? value.firstDayOpeningCompleted : true,
+    brutusIntroTutorialCompleted:
+      typeof value.brutusIntroTutorialCompleted === "boolean" ? value.brutusIntroTutorialCompleted : true
   };
 }
 

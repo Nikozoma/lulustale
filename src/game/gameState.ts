@@ -90,8 +90,18 @@ export type PersistentGameState = {
   status: PlayerStatusState;
   flags: {
     dayWarningSeen: boolean;
+    firstDayOpeningCompleted: boolean;
+    brutusIntroTutorialCompleted: boolean;
   };
 };
+
+export function createFreshGameFlags(): PersistentGameState["flags"] {
+  return {
+    dayWarningSeen: false,
+    firstDayOpeningCompleted: false,
+    brutusIntroTutorialCompleted: false
+  };
+}
 
 export function createDefaultInventory(): InventoryEntry[] {
   return [];

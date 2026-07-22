@@ -116,7 +116,21 @@ describe("game shell mobile-first UI", () => {
     expect(css).toContain("overflow-y: auto");
     expect(css).toContain("grid-template-columns: 1fr 1fr");
     expect(main).toContain("button.hidden = companionMenuOpen || !target");
+    expect(main).toContain('const brutusAvailable = quest.dogFed && phase === "day"');
     expect(main).toContain("brutusActionEntry.hidden = companionMenuOpen || !brutusAvailable");
+  });
+
+  it("wires the first-playthrough opening and reusable sleep fade into the existing shell", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
+
+    expect(html).toContain('id="screen-fade"');
+    expect(css).toMatch(/\.screen-fade\s*\{[^}]*transition:\s*opacity 520ms ease-in-out/s);
+    expect(main).toContain('text: "BEEP! BEEP! BEEP!"');
+    expect(main).toContain("for (const tutorialId of OPENING_TUTORIAL_SEQUENCE)");
+    expect(main).toContain("await runSleepWakeTransition");
+    expect(main).toContain("input.resetMovementInput();");
   });
 
   it("keeps the orientation gate above the title and refreshes every mobile viewport source", () => {
@@ -139,14 +153,22 @@ describe("game shell mobile-first UI", () => {
     expect(css).toContain("width: 52px");
     expect(css).toContain("height: 52px");
   });
-  it("ships the batch-3 turn-based battle shell", () => {
+  it("ships the shared-field turn-based battle shell", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const main = readFileSync(resolve(process.cwd(), "src/main.ts"), "utf8");
 
     expect(html).toContain('id="battle-panel"');
+    expect(html).toContain('id="battle-scene"');
+    expect(html).toContain('id="battle-player-combatant"');
     expect(html).toContain('id="battle-enemies"');
     expect(html).toContain('id="battle-attack"');
     expect(html).toContain('id="battle-defend"');
     expect(html).toContain('id="battle-item"');
+    expect(html).not.toContain("battle-player-card");
+    expect(html).not.toContain("battle-enemy-card");
+    expect(main).toContain("createBattleBackdrop(activeMap, activeVisual.definition, player.position)");
+    expect(main).toContain('battleMenuMode = "targets"');
+    expect(main).toContain('data-battle-system="back"');
   });
 
 });
